@@ -4,33 +4,24 @@ import * as React from "react";
 import Image from "next/image";
 import {
   AudioWaveform,
-  BookOpen,
-  Bot,
   Building,
   ChartLine,
   CircleUser,
   Command,
-  Frame,
   GalleryVerticalEnd,
   Home,
-  Map,
   MessageCircleMore,
   Package,
-  PieChart,
   ScrollText,
   Settings,
-  Settings2,
-  SquareTerminal,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
-import { NavUser } from "@/components/nav-user";
-import { TeamSwitcher } from "@/components/team-switcher";
+
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
@@ -150,8 +141,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Image
           src="/images/logo.png"
           alt="Logo"
-          width={250}
-          height={250}
+          width={120}
+          height={100}
           className="display-block mx-auto"
         />
       </SidebarHeader>
