@@ -50,17 +50,16 @@ export function SearchBar() {
             isExpanded ? "w-[200px] sm:w-[300px] md:w-[400px]" : "w-0"
           )}
         >
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <div className="relative">
             <Input
               ref={inputRef}
               type="search"
-              placeholder="Search..."
+              placeholder="Ara..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-8 pr-4"
+              className="w-full pl-2 pr-2"
             />
-          </div>
+            </div>
         </div>
         <Button
           type="button"

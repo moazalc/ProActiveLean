@@ -22,13 +22,13 @@ export function NotificationsBell() {
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: "1",
-      title: "New message",
-      description: "You have a new message from Jane",
+      title: "Yeni Mesaj",
+      description: "Cumhurbaşkanı Erdoğan'dan yeni bir mesajınız var",
     },
     {
       id: "2",
-      title: "Project update",
-      description: 'Your project "App redesign" has been updated',
+      title: "Denetimleri Tamamla",
+      description: "Çalışan denetimi tamamladı",
     },
   ]);
 
@@ -46,14 +46,14 @@ export function NotificationsBell() {
           {notifications.length > 0 && (
             <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500" />
           )}
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">Bildirim</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+        <DropdownMenuLabel>Bildirim</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {notifications.length === 0 ? (
-          <DropdownMenuItem>No new notifications</DropdownMenuItem>
+          <DropdownMenuItem>Yeni Bildirim Yok. Git.</DropdownMenuItem>
         ) : (
           notifications.map((notification) => (
             <DropdownMenuItem
@@ -65,9 +65,12 @@ export function NotificationsBell() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => clearNotification(notification.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    clearNotification(notification.id);
+                  }}
                 >
-                  Clear
+                  Sil
                 </Button>
               </div>
               <span className="text-sm text-muted-foreground">
