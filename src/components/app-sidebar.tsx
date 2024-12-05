@@ -119,15 +119,15 @@ const data = {
       items: [
         {
           title: "Firma Ayarları",
-          url: "#",
+          url: "/ayarlar/firma",
         },
         {
           title: "Tanımlama Ayarları",
-          url: "#",
+          url: "/ayarlar/tanimlama",
         },
         {
           title: "Görevler",
-          url: "#",
+          url: "/ayarlar/gorevler",
         },
       ],
     },

@@ -40,9 +40,21 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            <AppSidebar />
-            <Header />
-            {children}
+            <div className="flex h-screen overflow-hidden">
+              {/* Sidebar */}
+              <AppSidebar />
+
+              {/* Main Content */}
+              <div className="flex flex-1 flex-col w-full">
+                {/* Header */}
+                <Header />
+
+                {/* Page Content */}
+                <main className="flex-1 overflow-auto w-full">
+                  <div className="h-full w-full ">{children}</div>
+                </main>
+              </div>
+            </div>
           </SidebarProvider>
         </ThemeProvider>
       </body>
