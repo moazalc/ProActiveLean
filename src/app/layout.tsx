@@ -41,8 +41,8 @@ export default function RootLayout({
         >
           <SidebarProvider>
             <AppSidebar />
-            {children}
             <Header />
+            {children}
           </SidebarProvider>
         </ThemeProvider>
       </body>

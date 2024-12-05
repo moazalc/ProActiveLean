@@ -103,17 +103,17 @@ const data = {
   ],
   projects: [
     {
-      name: "Kullancılar",
+      title: "Kullanıcılar",
       url: "#",
       icon: CircleUser,
     },
     {
-      name: "Soru Havuzu",
+      title: "Soru Havuzu",
       url: "#",
       icon: Package,
     },
     {
-      name: "Ayarları",
+      title: "Ayarları",
       url: "#",
       icon: Settings,
       items: [
@@ -148,7 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={data.projects} />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
