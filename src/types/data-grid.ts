@@ -13,8 +13,7 @@ export interface DataGridProps<T> {
   columns: Column<T>[];
   pageSize?: number;
   onRowClick?: (item: T) => void;
-  onEdit?: (id: string, updatedItem: T) => void;
-  onDelete?: (id: string) => void;
+  renderActions?: (item: T) => ReactNode;
 }
 
 export interface SortConfig {

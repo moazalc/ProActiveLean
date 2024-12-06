@@ -10,43 +10,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  ChevronDown,
-  ChevronUp,
-  ChevronsUpDown,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { DataGridProps, SortConfig } from "../types/data-grid";
 
-export function DataGrid<T>({
+export function DataGrid<T extends { [key: string]: any }>({
   data,
   columns,
   pageSize = 10,
   onRowClick,
-  onEdit,
-  onDelete,
+  renderActions,
 }: DataGridProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingValues, setEditingValues] = useState<Partial<T>>({});
 
   const sortedData = useMemo(() => {
     let sortableItems = [...data];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (
-          (a as Record<string, any>)[sortConfig.key] <
-          (b as Record<string, any>)[sortConfig.key]
-        ) {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
           return sortConfig.direction === "asc" ? -1 : 1;
         }
-        if (
-          (a as Record<string, any>)[sortConfig.key] >
-          (b as Record<string, any>)[sortConfig.key]
-        ) {
+        if (a[sortConfig.key] > b[sortConfig.key]) {
           return sortConfig.direction === "asc" ? 1 : -1;
         }
         return 0;
@@ -86,27 +70,6 @@ export function DataGrid<T>({
     );
   };
 
-  const handleEdit = (id: string) => {
-    const itemToEdit = data.find((item) => (item as any).id === id);
-    if (itemToEdit) {
-      setEditingId(id);
-      setEditingValues(itemToEdit);
-    }
-  };
-
-  const handleSave = () => {
-    if (editingId && onEdit) {
-      onEdit(editingId, editingValues as T);
-      setEditingId(null);
-      setEditingValues({});
-    }
-  };
-
-  const handleCancel = () => {
-    setEditingId(null);
-    setEditingValues({});
-  };
-
   return (
     <div>
       <Table>
@@ -125,7 +88,7 @@ export function DataGrid<T>({
                 </div>
               </TableHead>
             ))}
-            <TableHead>Actions</TableHead>
+            {renderActions && <TableHead>Eylemler</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -137,50 +100,12 @@ export function DataGrid<T>({
             >
               {columns.map((column) => (
                 <TableCell key={column.key as string}>
-                  {editingId === (item as any).id ? (
-                    <Input
-                      value={(editingValues[column.key] as string) || ""}
-                      onChange={(e) =>
-                        setEditingValues({
-                          ...editingValues,
-                          [column.key]: e.target.value,
-                        })
-                      }
-                    />
-                  ) : column.render ? (
-                    column.render(item[column.key], item)
-                  ) : (
-                    (item[column.key] as React.ReactNode)
-                  )}
+                  {column.render
+                    ? column.render(item[column.key], item)
+                    : (item[column.key] as React.ReactNode)}
                 </TableCell>
               ))}
-              <TableCell>
-                {editingId === (item as any).id ? (
-                  <>
-                    <Button onClick={handleSave} className="mr-2">
-                      Save
-                    </Button>
-                    <Button onClick={handleCancel} variant="outline">
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      onClick={() => handleEdit((item as any).id)}
-                      className="mr-2"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => onDelete && onDelete((item as any).id)}
-                      variant="destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-              </TableCell>
+              {renderActions && <TableCell>{renderActions(item)}</TableCell>}
             </TableRow>
           ))}
         </TableBody>
@@ -192,7 +117,7 @@ export function DataGrid<T>({
           onClick={() => setCurrentPage((old) => Math.max(old - 1, 1))}
           disabled={currentPage === 1}
         >
-          Previous
+          Önceki
         </Button>
         <div className="text-sm text-muted-foreground">
           Page {currentPage} of {totalPages}
@@ -203,7 +128,7 @@ export function DataGrid<T>({
           onClick={() => setCurrentPage((old) => Math.min(old + 1, totalPages))}
           disabled={currentPage === totalPages}
         >
-          Next
+          Sonraki
         </Button>
       </div>
     </div>

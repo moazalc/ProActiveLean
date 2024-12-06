@@ -106,6 +106,12 @@ const data = {
       title: "Kullanıcılar",
       url: "#",
       icon: CircleUser,
+      items: [
+        {
+          title: "Kullanıcılar Listesi",
+          url: "/kullanicilar",
+        },
+      ],
     },
     {
       title: "Soru Havuzu",

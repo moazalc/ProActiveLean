@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ModeToggle } from "@/components/mode-toggle";
 import { Header } from "@/components/app-header";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -40,20 +40,18 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            <div className="flex h-screen overflow-hidden">
-              {/* Sidebar */}
-              <AppSidebar />
+            {/* Sidebar */}
+            <AppSidebar />
 
-              {/* Main Content */}
-              <div className="flex flex-1 flex-col w-full">
-                {/* Header */}
-                <Header />
+            {/* Header */}
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <Header />
 
-                {/* Page Content */}
-                <main className="flex-1 overflow-auto w-full">
-                  <div className="h-full w-full ">{children}</div>
-                </main>
-              </div>
+              {/* Main content */}
+              <main className="container flex-1 overflow-y-auto p-4">
+                {children}
+              </main>
+              <Toaster />
             </div>
           </SidebarProvider>
         </ThemeProvider>
