@@ -70,12 +70,12 @@ export default function UsersPage() {
       isAuditor: false,
     },
   });
-  // Add this after the users state declaration
+  // Dummy info
   useEffect(() => {
     const dummyUsers: User[] = [
       {
         id: 1,
-        firstName: "Moaz",
+        firstName: "Ahmet",
         lastName: "Yılmaz",
         email: "ahmet@example.com",
         username: "ahmet123",
@@ -241,7 +241,7 @@ export default function UsersPage() {
   const columns: Column<User>[] = [
     { key: "id", header: "ID", sortable: true },
     {
-      key: "name",
+      key: "firstName",
       header: "Ad Soyad",
       sortable: true,
       render: (_, user) => `${user.firstName} ${user.lastName}`,
@@ -262,22 +262,6 @@ export default function UsersPage() {
       ),
     },
     { key: "email", header: "Email", sortable: true },
-    {
-      key: "isAuditor",
-      header: "Denetim Yetkisi",
-      sortable: true,
-      render: (_, user) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-            user.role?.isAuditor
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          {user.role?.isAuditor ? "Evet" : "Hayır"}
-        </span>
-      ),
-    },
   ];
 
   const renderActions = (user: User) => (

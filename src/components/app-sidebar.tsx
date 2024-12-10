@@ -83,15 +83,15 @@ const data = {
       items: [
         {
           title: "Müşteri Yorumları",
-          url: "#",
+          url: "/musteri/yorumlari",
         },
         {
           title: "Yorum Değerlendirme",
-          url: "#",
+          url: "/musteri/yonetimi",
         },
         {
           title: "Değerlendirme Konusu",
-          url: "#",
+          url: "/musteri/konusu",
         },
       ],
     },
