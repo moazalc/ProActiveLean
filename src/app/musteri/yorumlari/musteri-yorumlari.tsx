@@ -22,8 +22,8 @@ interface ReviewRating {
 export default function CustomerReview() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const locationId = searchParams.get("locationId");
-  const roomNo = searchParams.get("roomNo");
+  const locationId = searchParams?.get("locationId") || "";
+  const roomNo = searchParams?.get("roomNo") || "";
 
   const [reviewSubjects, setReviewSubjects] = useState<ReviewSubject[]>([]);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
