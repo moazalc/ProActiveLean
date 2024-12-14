@@ -1,75 +1,55 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  PolarAngleAxis,
+  RadarChart,
   PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
   Radar,
-  RadarChart as RechartsRadarChart,
+  ResponsiveContainer,
 } from "recharts";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-const chartData = [
-  { month: "Ocak", desktop: 186 },
-  { month: "Şubat", desktop: 305 },
-  { month: "Mart", desktop: 237 },
-  { month: "Nisan", desktop: 273 },
-  { month: "Mayıs", desktop: 209 },
-  { month: "Haziran", desktop: 214 },
+const data = [
+  { subject: "Kalite", A: 120, B: 110, fullMark: 150 },
+  { subject: "Güvenlik", A: 98, B: 130, fullMark: 150 },
+  { subject: "Verimlilik", A: 86, B: 130, fullMark: 150 },
+  { subject: "Performans", A: 99, B: 100, fullMark: 150 },
+  { subject: "İnovasyon", A: 85, B: 90, fullMark: 150 },
+  { subject: "Süreç", A: 65, B: 85, fullMark: 150 },
 ];
 
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig;
-
-export function RadarChart() {
+export function RadarMetrics() {
   return (
-    <Card>
-      <CardHeader className="items-center pb-4">
-        <CardTitle>Asliteks</CardTitle>
-        <CardDescription>Example Sentence</CardDescription>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>Performans Metrikleri</CardTitle>
       </CardHeader>
-      <CardContent className="pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
-          <RechartsRadarChart data={chartData}>
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <PolarAngleAxis dataKey="month" />
-            <PolarGrid />
-            <Radar
-              dataKey="desktop"
-              fill="var(--color-desktop)"
-              fillOpacity={0.6}
-            />
-          </RechartsRadarChart>
-        </ChartContainer>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" />
+              <PolarRadiusAxis />
+              <Radar
+                name="Hedef"
+                dataKey="A"
+                stroke="hsl(var(--primary))"
+                fill="hsl(var(--primary))"
+                fillOpacity={0.6}
+              />
+              <Radar
+                name="Gerçekleşen"
+                dataKey="B"
+                stroke="hsl(var(--secondary))"
+                fill="hsl(var(--secondary))"
+                fillOpacity={0.6}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 font-medium leading-none">
-          Something something 5.2% bu ay <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="flex items-center gap-2 leading-none text-muted-foreground">
-          Ocak - Haziran 2024
-        </div>
-      </CardFooter>
     </Card>
   );
 }
