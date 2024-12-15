@@ -104,9 +104,8 @@ const data = {
     },
     {
       title: "Soru Havuzu",
-      url: "#",
+      url: "/soruhavuzu",
       icon: Package,
-      items: [],
     },
     {
       title: "Ayarları",
