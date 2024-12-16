@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 
 import {
   Sidebar,
@@ -27,33 +26,12 @@ import {
 } from "@/components/ui/sidebar";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "gang is this real",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
       title: "Gösterge Paneli",
-      url: "#",
+      url: "/",
       icon: Home,
+      isActive: true,
     },
     {
       title: "Checklist",
@@ -75,6 +53,7 @@ const data = {
       title: "Tanımlamalar",
       url: "#",
       icon: Building,
+      items: [],
     },
     {
       title: "Müşteri Yorumu",
@@ -83,22 +62,32 @@ const data = {
       items: [
         {
           title: "Müşteri Yorumları",
-          url: "#",
+          url: "/musteri/yorumlari",
         },
         {
           title: "Yorum Değerlendirme",
-          url: "#",
+          url: "/musteri/yonetimi",
         },
         {
           title: "Değerlendirme Konusu",
-          url: "#",
+          url: "/musteri/konusu",
         },
       ],
     },
     {
       title: "Raporlar",
-      url: "#",
+      url: "/raporlama",
       icon: ChartLine,
+      items: [
+        {
+          title: "Raporlar",
+          url: "/raporlama",
+        },
+        {
+          title: "Rapor Ayarları",
+          url: "/raporlama/ayarlar",
+        },
+      ],
     },
   ],
   projects: [
@@ -106,11 +95,18 @@ const data = {
       title: "Kullanıcılar",
       url: "#",
       icon: CircleUser,
+      items: [
+        {
+          title: "Kullanıcılar Listesi",
+          url: "/kullanicilar",
+        },
+      ],
     },
     {
       title: "Soru Havuzu",
       url: "#",
       icon: Package,
+      items: [],
     },
     {
       title: "Ayarları",
@@ -119,15 +115,15 @@ const data = {
       items: [
         {
           title: "Firma Ayarları",
-          url: "#",
+          url: "/ayarlar/firma",
         },
         {
           title: "Tanımlama Ayarları",
-          url: "#",
+          url: "/ayarlar/tanimlama",
         },
         {
           title: "Görevler",
-          url: "#",
+          url: "/ayarlar/gorevler",
         },
       ],
     },
@@ -143,7 +139,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           alt="Logo"
           width={120}
           height={100}
-          className="display-block mx-auto"
+          className="display-block mx-auto cursor-pointer"
+          onClick={() => (window.location.href = "/")}
         />
       </SidebarHeader>
       <SidebarContent>

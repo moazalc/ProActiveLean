@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,9 @@ export function SearchBar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Searching for:", query);
-    setIsExpanded(false);
+    if (window.innerWidth < 768) {
+      setIsExpanded(false);
+    }
   };
 
   const toggleSearch = () => {
@@ -47,29 +49,38 @@ export function SearchBar() {
         <div
           className={cn(
             "overflow-hidden transition-all duration-300 ease-in-out",
-            isExpanded ? "w-[200px] sm:w-[300px] md:w-[400px]" : "w-0"
+            isExpanded
+              ? "w-[200px] sm:w-[300px] md:w-[400px]"
+              : "w-0 md:w-[200px] md:border md:border-input md:rounded-md"
           )}
         >
-            <div className="relative">
+          <div className="relative">
             <Input
               ref={inputRef}
               type="search"
               placeholder="Ara..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-2 pr-2"
+              className={cn(
+                "w-full pl-2 pr-8",
+                isExpanded ? "" : "md:pr-10 md:pl-4"
+              )}
             />
-            </div>
+          </div>
         </div>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="ml-2"
+          className={cn("ml-2", isExpanded ? "" : "md:absolute md:right-0")}
           onClick={toggleSearch}
           aria-label={isExpanded ? "Close search" : "Open search"}
         >
-          <Search className="h-5 w-5" />
+          {isExpanded ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Search className="h-5 w-5" />
+          )}
         </Button>
       </form>
     </div>
