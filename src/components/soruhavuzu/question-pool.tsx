@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Question, User } from "@/types/questions";
+import { useRouter } from "next/navigation";
 
 interface QuestionPoolProps {
   questions: Question[];
@@ -43,9 +43,7 @@ export function QuestionPool({
             <TableHead className="w-16">Sıralama</TableHead>
             <TableHead className="w-16">No</TableHead>
             <TableHead>Soru</TableHead>
-            {!isSubQuestion && (
-              <TableHead className="w-24 text-right">Alt Soru Sayısı</TableHead>
-            )}
+            <TableHead>İlgili Alanlar</TableHead>
             <TableHead className="w-32"></TableHead>
           </TableRow>
         </TableHeader>
@@ -59,17 +57,15 @@ export function QuestionPool({
               </TableCell>
               <TableCell>{question.sequence}</TableCell>
               <TableCell>{question.text}</TableCell>
-              {!isSubQuestion && (
-                <TableCell className="text-right">{question.count}</TableCell>
-              )}
+              <TableCell>{question.areas.join(", ")}</TableCell>
               <TableCell className="text-right space-x-2">
                 {!isSubQuestion && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      router.push(`/soruhavuzu/${question.id}/altsoru`);
-                    }}
+                    onClick={() =>
+                      router.push(`/soruhavuzu/${question.id}/altsoru`)
+                    }
                   >
                     <Eye className="h-4 w-4" />
                   </Button>

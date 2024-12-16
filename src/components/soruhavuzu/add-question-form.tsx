@@ -12,23 +12,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Area } from "@/types/questions";
+
+const areaOptions = [
+  "Katlar",
+  "Lobi",
+  "Restorant",
+  "Tuvaletler",
+  "Bahçe",
+  "Bölüm",
+  "Havuz",
+  "Toplanti Odalar",
+];
 
 interface AddQuestionFormProps {
-  areas: Area[];
   onSubmit: (data: {
     text: string;
     isChecklist: boolean;
     checklistItems: string[];
-    relatedAreas: string[];
+    areas: string[];
   }) => void;
+  initialData?: {
+    text: string;
+    isChecklist: boolean;
+    checklistItems: string[];
+    areas: string[];
+  };
 }
 
-export function AddQuestionForm({ areas, onSubmit }: AddQuestionFormProps) {
-  const [isChecklist, setIsChecklist] = useState(false);
-  const [checklistItems, setChecklistItems] = useState<string[]>([""]);
-  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
-  const [questionText, setQuestionText] = useState("");
+export function AddQuestionForm({
+  onSubmit,
+  initialData,
+}: AddQuestionFormProps) {
+  const [isChecklist, setIsChecklist] = useState(
+    initialData?.isChecklist || false
+  );
+  const [checklistItems, setChecklistItems] = useState<string[]>(
+    initialData?.checklistItems || [""]
+  );
+  const [selectedAreas, setSelectedAreas] = useState<string[]>(
+    initialData?.areas || []
+  );
+  const [questionText, setQuestionText] = useState(initialData?.text || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,15 +60,13 @@ export function AddQuestionForm({ areas, onSubmit }: AddQuestionFormProps) {
       text: questionText,
       isChecklist,
       checklistItems: isChecklist ? checklistItems.filter(Boolean) : [],
-      relatedAreas: selectedAreas,
+      areas: selectedAreas,
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Temel Soru Ekle</h2>
-
         <div className="space-y-2">
           <Label htmlFor="question">Soru</Label>
           <Input
@@ -112,26 +134,24 @@ export function AddQuestionForm({ areas, onSubmit }: AddQuestionFormProps) {
               <SelectValue placeholder="Alan seçin" />
             </SelectTrigger>
             <SelectContent>
-              {areas.map((area) => (
-                <SelectItem key={area.id} value={area.id}>
-                  {area.name}
+              {areaOptions.map((area) => (
+                <SelectItem key={area} value={area}>
+                  {area}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <div className="flex flex-wrap gap-2 mt-2">
-            {selectedAreas.map((areaId) => (
+            {selectedAreas.map((area) => (
               <div
-                key={areaId}
+                key={area}
                 className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md flex items-center space-x-1"
               >
-                <span>{areas.find((a) => a.id === areaId)?.name}</span>
+                <span>{area}</span>
                 <button
                   type="button"
                   onClick={() =>
-                    setSelectedAreas(
-                      selectedAreas.filter((id) => id !== areaId)
-                    )
+                    setSelectedAreas(selectedAreas.filter((a) => a !== area))
                   }
                   className="text-secondary-foreground/70 hover:text-secondary-foreground"
                 >

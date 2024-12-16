@@ -1,4 +1,5 @@
 export interface Question {
+  areas: any;
   id: string;
   sequence: number;
   text: string;
@@ -8,6 +9,7 @@ export interface Question {
   subQuestions: Question[];
   usedInInspection: boolean;
   count: number;
+  cardArea: string;
 }
 
 export interface Area {
