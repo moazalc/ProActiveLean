@@ -4,7 +4,7 @@ import { DataGrid } from "@/components/app-datatable";
 import { Column } from "@/types/data-grid";
 
 interface Category {
-  id: number;
+  id?: number;
   name: string;
   locationCategoryId: number;
   locationCategory: Location;
@@ -38,13 +38,14 @@ export function ChecklistCategoryGrid({
       key: "locationCategory",
       header: "Konum Kategori",
       sortable: true,
-      render: (value) => value.name,
+      render: (value) =>
+        typeof value === "object" && "name" in value ? value.name : "",
     },
     {
       key: "questions",
       header: "Soru Sayısı",
       sortable: true,
-      render: (value) => value.length,
+      render: (value) => (Array.isArray(value) ? value.length : 0),
     },
   ];
 
@@ -56,7 +57,7 @@ export function ChecklistCategoryGrid({
       <Button
         variant="destructive"
         size="sm"
-        onClick={() => onDelete(category.id)}
+        onClick={() => category.id !== undefined && onDelete(category.id)}
       >
         <Trash2 className="h-4 w-4" />
       </Button>

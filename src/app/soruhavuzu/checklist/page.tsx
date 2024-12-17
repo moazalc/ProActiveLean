@@ -10,7 +10,7 @@ import { ChecklistCategoryGrid } from "@/components/soruhavuzu/checklist/checkli
 import { mockCategories, mockLocations } from "./mock-data";
 
 interface Category {
-  id: number;
+  id?: number;
   name: string;
   locationCategoryId: number;
   locationCategory: Location;
@@ -39,7 +39,7 @@ export default function ChecklistPool() {
     // setLocations(fetchedLocations);
   }, []);
 
-  const handleCreateCategory = (newCategory: Omit<Category, "id">) => {
+  const handleCreateCategory = (newCategory: Category) => {
     const category = { ...newCategory, id: Date.now() };
     setCategories([...categories, category]);
     setIsDialogOpen(false);
