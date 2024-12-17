@@ -21,13 +21,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { mockChecklists } from "../mock-data";
+import React from "react";
 
 export default function ChecklistAnswering({
-  params,
+  params: paramsPromise,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const params = React.use(paramsPromise);
   const checklist = mockChecklists.find((c) => c.id === params.id);
 
   if (!checklist) {
