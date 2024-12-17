@@ -59,9 +59,9 @@ export default function ReviewManager() {
   useEffect(() => {
     // Dummy data for initial population
     const dummyLocations: Location[] = [
-      { id: 1, name: "İstanbul" },
-      { id: 2, name: "Ankara" },
-      { id: 3, name: "İzmir" },
+      { id: 1, name: "Oda-1" },
+      { id: 2, name: "Havuz" },
+      { id: 3, name: "Bahçe" },
     ];
 
     const dummyUsers: User[] = [
@@ -73,7 +73,7 @@ export default function ReviewManager() {
     const dummyReviews: Review[] = [
       {
         id: 1,
-        name: "Şehir Merkezi İncelemesi",
+        name: "Oda-1",
         relatedPlaceId: 1,
         createdBy: 1,
         createBy: dummyUsers[0],
@@ -81,7 +81,7 @@ export default function ReviewManager() {
       },
       {
         id: 2,
-        name: "Sahil Bölgesi Değerlendirmesi",
+        name: "Havuz",
         relatedPlaceId: 3,
         createdBy: 2,
         createBy: dummyUsers[1],
@@ -89,7 +89,7 @@ export default function ReviewManager() {
       },
       {
         id: 3,
-        name: "Tarihi Yerler Turu",
+        name: "Bahçe",
         relatedPlaceId: 2,
         createdBy: 3,
         createBy: dummyUsers[2],
