@@ -175,7 +175,6 @@ export default function SubQuestionsPage() {
         <Button variant="ghost" onClick={() => router.back()}>
           ← Geri
         </Button>
-        <h1 className="text-2xl font-bold">Alt Sorular</h1>
       </div>
 
       <QuestionCardFilter

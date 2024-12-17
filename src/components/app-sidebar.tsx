@@ -47,7 +47,7 @@ const data = {
         },
         {
           title: "Denetim Ayarları",
-          url: "/denetimler/ayarlar",
+          url: "/denetimler/ayarlari",
         },
       ],
     },
