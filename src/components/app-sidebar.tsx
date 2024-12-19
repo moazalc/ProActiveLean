@@ -3,17 +3,15 @@
 import * as React from "react";
 import Image from "next/image";
 import {
-  AudioWaveform,
   Building,
   ChartLine,
   CircleUser,
-  Command,
-  GalleryVerticalEnd,
   Home,
   MessageCircleMore,
   Package,
   ScrollText,
   Settings,
+  ListChecks,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -37,18 +35,23 @@ const data = {
       title: "Checklist",
       url: "#",
       icon: ScrollText,
+    },
+    {
+      title: "Denetimler",
+      url: "#",
+      icon: ListChecks,
       items: [
         {
-          title: "Denetimleri",
-          url: "#",
+          title: "Denetimler",
+          url: "/denetimler",
         },
         {
-          title: "Denetimleri Ayarları",
-          url: "#",
+          title: "Denetim Ayarları",
+          url: "/denetimler/ayarlar",
         },
       ],
     },
-    // Need to add ...categories logic here.
+
     {
       title: "Tanımlamalar",
       url: "#",
@@ -104,9 +107,8 @@ const data = {
     },
     {
       title: "Soru Havuzu",
-      url: "#",
+      url: "/soruhavuzu",
       icon: Package,
-      items: [],
     },
     {
       title: "Ayarları",
