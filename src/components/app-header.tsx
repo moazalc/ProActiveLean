@@ -19,7 +19,7 @@ export function Header() {
           <ModeToggle />
           <NavUser
             user={{
-              name: "Suna Yıldız",
+              name: "Ankara",
               email: "",
               avatar: "",
             }}

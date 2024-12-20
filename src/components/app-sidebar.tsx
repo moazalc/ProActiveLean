@@ -33,7 +33,7 @@ const data = {
     },
     {
       title: "Checklist",
-      url: "#",
+      url: "/checklist",
       icon: ScrollText,
     },
     {
@@ -47,7 +47,7 @@ const data = {
         },
         {
           title: "Denetim Ayarları",
-          url: "/denetimler/ayarlar",
+          url: "/denetimler/ayarlari",
         },
       ],
     },
@@ -81,16 +81,6 @@ const data = {
       title: "Raporlar",
       url: "/raporlama",
       icon: ChartLine,
-      items: [
-        {
-          title: "Raporlar",
-          url: "/raporlama",
-        },
-        {
-          title: "Rapor Ayarları",
-          url: "/raporlama/ayarlar",
-        },
-      ],
     },
   ],
   projects: [
@@ -109,6 +99,16 @@ const data = {
       title: "Soru Havuzu",
       url: "/soruhavuzu",
       icon: Package,
+      items: [
+        {
+          title: "Soru Havuzu",
+          url: "/soruhavuzu",
+        },
+        {
+          title: "Checklist Havuzu",
+          url: "/soruhavuzu/checklist",
+        },
+      ],
     },
     {
       title: "Ayarları",

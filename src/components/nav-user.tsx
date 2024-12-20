@@ -1,6 +1,7 @@
 "use client";
 
 import { BadgeCheck, LogOut, Settings, ChevronDown } from "lucide-react";
+import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -41,7 +42,7 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">SY</AvatarFallback>
+                <AvatarFallback className="rounded-lg">A</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
@@ -70,13 +71,21 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Hesabım
+              <DropdownMenuItem asChild>
+                <Link href="/Hesabim">
+                  <div className="flex items-center gap-2">
+                    <BadgeCheck />
+                    Hesabım
+                  </div>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings />
-                Ayarları
+              <DropdownMenuItem asChild>
+                <Link href="/Hesabim/ayarlar">
+                  <div className="flex items-center gap-2">
+                    <Settings />
+                    Ayarlar
+                  </div>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
