@@ -23,9 +23,7 @@ export default function DashboardPage() {
           year: string;
           startMonth: string;
           endMonth: string;
-        }): void {
-          throw new Error("Function not implemented.");
-        }}
+        }): void {}}
       />
       <TrendChart />
     </div>

@@ -1,3 +1,4 @@
+import React from "react";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -6,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/app-header";
 import { Toaster } from "@/components/ui/toaster";
-import { customFont as importedCustomFont } from "./font";
+import { customFont as importedCustomFont } from "../font";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   description: "",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -54,8 +55,10 @@ export default function RootLayout({
               <Header />
 
               {/* Main content */}
-              <main className="container flex-1 overflow-y-auto p-4 ">
-                {children}
+              <main>
+                <div className="container flex-1 overflow-y-auto p-4 ">
+                  {children}
+                </div>
               </main>
               <Toaster />
             </div>

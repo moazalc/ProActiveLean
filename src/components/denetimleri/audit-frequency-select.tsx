@@ -7,6 +7,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 
 const daysOfWeek = [
   "Pazartesi",
@@ -18,43 +28,57 @@ const daysOfWeek = [
   "Pazar",
 ];
 
-const monthlyOptions = [
-  { value: "1", label: "Ayın ilk günü" },
-  { value: "15", label: "Ayın 15. günü" },
-  { value: "last", label: "Ayın son günü" },
-];
-
 interface AuditFrequencySelectProps {
   auditType: string;
   auditFrequency: string;
   customInterval: string;
+  selectedDate: Date | undefined;
   onAuditFrequencyChange: (value: string) => void;
   onCustomIntervalChange: (value: string) => void;
+  onSelectedDateChange: (date: Date | undefined) => void;
 }
 
 export function AuditFrequencySelect({
   auditType,
   auditFrequency,
   customInterval,
+  selectedDate,
   onAuditFrequencyChange,
   onCustomIntervalChange,
+  onSelectedDateChange,
 }: AuditFrequencySelectProps) {
   const renderFrequencyOptions = () => {
     switch (auditType) {
       case "monthly":
         return (
-          <Select value={auditFrequency} onValueChange={onAuditFrequencyChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Ayın gününü seçin" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthlyOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="monthlyDate">Ayın Günü</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={`w-full justify-start text-left font-normal ${
+                    !selectedDate && "text-muted-foreground"
+                  }`}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? (
+                    format(selectedDate, "PPP", { locale: tr })
+                  ) : (
+                    <span>Tarih seçin</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={onSelectedDateChange}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         );
       case "weekly":
         return (
@@ -99,9 +123,13 @@ export function AuditFrequencySelect({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="auditFrequency" className="text-sm font-medium text-gray-700 dark:text-gray-300">Periyodik Denetim Frekansı</Label>
+      <Label
+        htmlFor="auditFrequency"
+        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        Periyodik Denetim Frekansı
+      </Label>
       {renderFrequencyOptions()}
     </div>
   );
 }
-

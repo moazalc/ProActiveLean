@@ -52,7 +52,10 @@ export function AuditDialog({
   );
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     editingAudit?.denetimTarihi
+      ? new Date(editingAudit.denetimTarihi)
+      : undefined
   );
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const handleSaveAudit = () => {
     if (!newAudit.locationCategoryId || !newAudit.denetci || !selectedDate) {
@@ -63,6 +66,11 @@ export function AuditDialog({
       ...newAudit,
       dateDue: selectedDate,
     });
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setIsCalendarOpen(false);
   };
 
   return (
@@ -122,7 +130,7 @@ export function AuditDialog({
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Denetim Tarihi
             </label>
-            <Popover>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -130,6 +138,7 @@ export function AuditDialog({
                     "w-full justify-start text-left font-normal bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100",
                     !selectedDate && "text-muted-foreground"
                   )}
+                  onClick={() => setIsCalendarOpen(true)}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDate ? format(selectedDate, "PPP") : "Tarih seç"}
@@ -139,7 +148,7 @@ export function AuditDialog({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={handleDateSelect}
                   initialFocus
                   className="rounded-md border dark:border-gray-700 bg-white dark:bg-gray-800"
                 />

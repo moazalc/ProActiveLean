@@ -90,8 +90,12 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <LogOut />
-              Çıkış yap
+              <Link href="/login">
+                <div className="flex items-center gap-2">
+                  <LogOut />
+                  Çıkış yap
+                </div>
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
