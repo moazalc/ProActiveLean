@@ -18,7 +18,7 @@ export default function ChecklistAudits() {
   const [filterLocation, setFilterLocation] = useState<string>("");
   const [filterAuditor, setFilterAuditor] = useState<string>("");
 
-  const { audits, addAudit, updateAudit } = useAudits();
+  const { audits, addAudit, updateAudit, deleteAudit } = useAudits();
   const { locations, users } = useLocationsAndUsers();
   const { toast } = useToast();
 
@@ -98,7 +98,3 @@ export default function ChecklistAudits() {
     </div>
   );
 }
-function deleteAudit(id: string) {
-  throw new Error("Function not implemented.");
-}
-

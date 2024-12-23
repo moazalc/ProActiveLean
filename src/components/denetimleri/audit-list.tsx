@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Edit2, Check, Trash2 } from "lucide-react";
+import { MoreVertical, Edit2, PlayCircle, Trash2 } from "lucide-react";
 import { Audit } from "@/types/audit";
+import Link from "next/link";
 
 interface AuditListProps {
   audits: Audit[];
@@ -83,11 +85,13 @@ export function AuditList({
                 </p>
                 <div className="flex flex-wrap gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <span>
-                    Denetim Tarihi: {format(audit.denetimTarihi, "PP")}
+                    Denetim Tarihi:{" "}
+                    {format(audit.denetimTarihi, "PP", { locale: tr })}
                   </span>
                   {audit.tamamlanmaTarihi && (
                     <span>
-                      Tamamlanma Tarihi: {format(audit.tamamlanmaTarihi, "PP")}
+                      Tamamlanma Tarihi:{" "}
+                      {format(audit.tamamlanmaTarihi, "PP", { locale: tr })}
                     </span>
                   )}
                   <span>
@@ -122,14 +126,11 @@ export function AuditList({
                       <Trash2 className="mr-2 h-4 w-4" />
                       Sil
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <a
-                        href={"/checklistaccordion/?id=" + audit.id}
-                        className="flex items-center"
-                      >
-                        <Check className="mr-2 h-4 w-4" />
-                        Denetle
-                      </a>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/denetim/${audit.id}`}>
+                        <PlayCircle className="mr-2 h-4 w-4" />
+                        Denetim Başla
+                      </Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

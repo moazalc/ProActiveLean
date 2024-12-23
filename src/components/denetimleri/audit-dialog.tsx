@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Location, User } from "@/types/audit";
 
@@ -64,8 +67,9 @@ export function AuditDialog({
 
     onSave({
       ...newAudit,
-      dateDue: selectedDate,
+      denetimTarihi: selectedDate,
     });
+    onOpenChange(false);
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -115,7 +119,7 @@ export function AuditDialog({
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Bir Denetçi seç" />
+                <SelectValue placeholder="Denetçi seç" />
               </SelectTrigger>
               <SelectContent>
                 {users.map((user) => (
@@ -135,37 +139,31 @@ export function AuditDialog({
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100",
+                    "w-full justify-start text-left font-normal",
                     !selectedDate && "text-muted-foreground"
                   )}
-                  onClick={() => setIsCalendarOpen(true)}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : "Tarih seç"}
+                  {selectedDate ? (
+                    format(selectedDate, "PPP", { locale: tr })
+                  ) : (
+                    <span>Tarih seç</span>
+                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}
                   initialFocus
-                  className="rounded-md border dark:border-gray-700 bg-white dark:bg-gray-800"
                 />
               </PopoverContent>
             </Popover>
           </div>
         </div>
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            İptal
-          </Button>
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600"
-            onClick={handleSaveAudit}
-          >
-            {editingAudit ? "Güncelle" : "Ekle"}
-          </Button>
+        <div className="flex justify-end">
+          <Button onClick={handleSaveAudit}>Denetimi Kaydet</Button>
         </div>
       </DialogContent>
     </Dialog>

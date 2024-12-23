@@ -5,13 +5,12 @@ export interface User {
   email: string;
   username: string;
   password?: string;
-  phone: string;
+  phone?: string;
   createdAt: Date;
   lastLogin?: Date;
   roleId: number;
   avatar?: string;
   role?: { id: number; name: string; isAuditor: boolean };
-  canAudit: boolean;
 }
 
 export interface UserProfile {
@@ -22,10 +21,9 @@ export interface UserProfile {
   email: string;
   username: string;
   password?: string;
-  phone: string;
+  phone?: string;
   roleId: number;
   avatar?: string;
-  canAudit: boolean;
   role?: { id: number; name: string; isAuditor: boolean };
 }
 

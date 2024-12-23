@@ -35,6 +35,16 @@ const data = {
       title: "Checklist",
       url: "/checklist",
       icon: ScrollText,
+      items: [
+        {
+          title: "Checklist",
+          url: "/checklist",
+        },
+        {
+          title: "Checklist Yönetimi",
+          url: "/checklist/yonetim",
+        },
+      ],
     },
     {
       title: "Denetimler",

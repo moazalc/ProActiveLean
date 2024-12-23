@@ -23,7 +23,7 @@ export function NotificationsBell() {
     {
       id: "1",
       title: "Yeni Mesaj",
-      description: "Cumhurbaşkanı Erdoğan'dan yeni bir mesajınız var",
+      description: "yeni bir mesajınız var",
     },
     {
       id: "2",

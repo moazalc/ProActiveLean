@@ -39,9 +39,7 @@ export default function MyChecklists() {
     <div className="container mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">
-            Kontrollistelerim
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">Checklists</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

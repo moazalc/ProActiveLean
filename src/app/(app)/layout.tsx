@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/app-header";
 import { Toaster } from "@/components/ui/toaster";
 import { customFont as importedCustomFont } from "../font";
+import Provider from "../context/AuthContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -57,7 +58,7 @@ export default async function RootLayout({
               {/* Main content */}
               <main>
                 <div className="container flex-1 overflow-y-auto p-4 ">
-                  {children}
+                  <Provider>{children}</Provider>
                 </div>
               </main>
               <Toaster />

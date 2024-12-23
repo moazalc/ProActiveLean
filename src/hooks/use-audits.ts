@@ -27,8 +27,38 @@ export function useAudits() {
       });
   };
 
-  const updateAudit = (id: any, auditData: any) => {
-    // Implement update logic here
+  const updateAudit = (id: string, auditData: any) => {
+    fetch(`/api/checklist-assignments/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(auditData),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((updatedAudit) => {
+        setAudits(
+          audits.map((audit) =>
+            audit.id === id ? processAudit(updatedAudit) : audit
+          )
+        );
+      });
+  };
+
+  const deleteAudit = (id: string) => {
+    fetch(`/api/checklist-assignments/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        if (res.ok) {
+          setAudits(audits.filter((audit) => audit.id !== id));
+        } else {
+          throw new Error("Failed to delete audit");
+        }
+      })
+      .catch((error) => {
+        console.error("Error deleting audit:", error);
+      });
   };
 
   const statusCounts = useMemo(() => {
@@ -45,7 +75,7 @@ export function useAudits() {
     };
   }, [audits]);
 
-  return { audits, addAudit, updateAudit, statusCounts };
+  return { audits, addAudit, updateAudit, deleteAudit, statusCounts };
 }
 
 function processAudit(audit: any): Audit {
