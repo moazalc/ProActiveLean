@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 // Mock data for questions
 const mockQuestions = {
@@ -29,6 +30,7 @@ const mockQuestions = {
 };
 
 export default function AuditPage() {
+  const router = useRouter();
   const { id } = useParams();
   const [answers, setAnswers] = useState({});
   const [score, setScore] = useState(0);
@@ -52,6 +54,9 @@ export default function AuditPage() {
       title: "Denetim Tamamlandı",
       description: "Denetim başarıyla tamamlandı ve kaydedildi.",
     });
+
+    // Navigate back to main page after submission
+    router.push("/denetimler");
   };
 
   return (

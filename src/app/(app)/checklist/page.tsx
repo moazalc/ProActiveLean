@@ -60,7 +60,7 @@ export default function MyChecklists() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="priority-filter">Öncelik</Label>
+              <Label htmlFor="prioriAty-filter">Öncelik</Label>
               <Select
                 onValueChange={(value) => handleFilterChange("priority", value)}
               >

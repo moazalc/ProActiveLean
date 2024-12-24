@@ -15,7 +15,7 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-export const customFont = localFont({
+const customFont = localFont({
   src: "/fonts/Satoshi-Regular.otf",
   display: "swap",
 });
@@ -33,7 +33,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${importedCustomFont.className} ${geistMono.className} antialiased`}
+        className={`${customFont.className} ${geistMono.className} antialiased`}
       >
         {/* Main content */}
         <main>
