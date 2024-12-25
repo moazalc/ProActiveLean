@@ -1,138 +1,267 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { useAuditSettingsStore } from "@/store/useAuditSettingsStore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AuditFrequency } from "@/types/auditsetting";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { AuditTypeSelect } from "@/components/denetimleri/audit-type-select";
-import { AuditFrequencySelect } from "@/components/denetimleri/audit-frequency-select";
-import { AuditSummary } from "@/components/denetimleri/audit-summary";
-import { AuditCategorySelect } from "@/components/denetimleri/audit-category-select";
-import { AuditorSelect } from "@/components/denetimleri/auditor-select";
+import { Toaster } from "@/components/ui/toaster";
+import { Calendar, User, Edit, Trash2, Plus, Check } from "lucide-react";
 
-export default function AuditSettings() {
-  const [auditCategory, setAuditCategory] = useState<string>("");
-  const [auditType, setAuditType] = useState<string>("");
-  const [auditFrequency, setAuditFrequency] = useState<string>("");
-  const [customInterval, setCustomInterval] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [auditor, setAuditor] = useState<string>("");
+const mockAuditors = [
+  { id: "1", name: "Ali" },
+  { id: "2", name: "Ayşe" },
+  { id: "3", name: "Mehmet" },
+];
+
+export default function DenetimAyarlarıPage() {
+  const { settings, createSetting, updateSetting, deleteSetting } =
+    useAuditSettingsStore();
   const { toast } = useToast();
 
-  const handleSave = () => {
-    if (!auditCategory) {
-      toast({
-        title: "Hata",
-        description: "Lütfen bir denetim kategorisi seçin.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Form states
+  const [frequency, setFrequency] = useState<AuditFrequency>("daily");
+  const [assignedAuditorId, setAssignedAuditorId] = useState("");
+  const [dailyInterval, setDailyInterval] = useState<number>(1);
+  const [weeklyDay, setWeeklyDay] = useState<number>(1);
+  const [monthlyDay, setMonthlyDay] = useState<number>(1);
 
-    if (!auditType) {
-      toast({
-        title: "Hata",
-        description: "Lütfen bir denetim türü seçin.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // For editing
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-    if (!auditor) {
-      toast({
-        title: "Hata",
-        description: "Lütfen bir denetçi seçin.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Filter out the data for the edit form
+  const editingRecord = editingId
+    ? settings.find((s) => s.id === editingId)
+    : null;
 
-    if (
-      auditType !== "unannounced" &&
-      !auditFrequency &&
-      !customInterval &&
-      !selectedDate
-    ) {
-      toast({
-        title: "Hata",
-        description: "Lütfen bir denetim sıklığı seçin.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Here you would typically save the settings to your backend or state management system
-    console.log("Denetim ayarları kaydediliyor:", {
-      auditCategory,
-      auditType,
-      auditFrequency,
-      customInterval,
-      selectedDate,
-      auditor,
-    });
-
+  // Handle create
+  const handleCreate = () => {
+    if (!assignedAuditorId) return;
+    // We pass the relevant day/interval based on frequency
+    createSetting(
+      frequency,
+      assignedAuditorId,
+      frequency === "daily" ? dailyInterval : undefined,
+      frequency === "weekly" ? weeklyDay : undefined,
+      frequency === "monthly" ? monthlyDay : undefined
+    );
+    // reset
+    setFrequency("daily");
+    setAssignedAuditorId("");
+    setDailyInterval(1);
+    setWeeklyDay(1);
+    setMonthlyDay(1);
     toast({
-      title: "Başarılı",
-      description: "Denetim ayarları başarıyla kaydedildi.",
+      title: "Ayar Oluşturuldu",
+      description: "Yeni denetim ayarı başarıyla oluşturuldu.",
+      duration: 3000,
+    });
+  };
+
+  // Handle update
+  const handleUpdate = () => {
+    if (!editingRecord || !assignedAuditorId) return;
+    updateSetting(
+      editingRecord.id,
+      frequency,
+      assignedAuditorId,
+      frequency === "daily" ? dailyInterval : undefined,
+      frequency === "weekly" ? weeklyDay : undefined,
+      frequency === "monthly" ? monthlyDay : undefined
+    );
+    setEditingId(null);
+    // reset form
+    setFrequency("daily");
+    setAssignedAuditorId("");
+    setDailyInterval(1);
+    setWeeklyDay(1);
+    setMonthlyDay(1);
+    toast({
+      title: "Ayar Güncellendi",
+      description: "Denetim ayarı başarıyla güncellendi.",
+      duration: 3000,
     });
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <Card className="max-w-2xl mx-auto">
+    <div className="container mx-auto p-4 space-y-6">
+      <h1 className="text-3xl font-bold text-primary">Denetim Ayarları</h1>
+
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            Denetim Ayarları
+          <CardTitle>
+            {editingId ? "Ayarı Düzenle" : "Yeni Ayar Oluştur"}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <AuditCategorySelect
-            auditCategory={auditCategory}
-            onAuditCategoryChange={setAuditCategory}
-          />
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="frequency">Denetim Tipi</Label>
+            <Select
+              value={frequency}
+              onValueChange={(value) => setFrequency(value as AuditFrequency)}
+            >
+              <SelectTrigger id="frequency">
+                <SelectValue placeholder="Denetim tipi seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Günlük </SelectItem>
+                <SelectItem value="weekly">Haftalık</SelectItem>
+                <SelectItem value="monthly">Aylık</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <AuditTypeSelect
-            auditType={auditType}
-            onAuditTypeChange={(value) => {
-              setAuditType(value);
-              setAuditFrequency("");
-              setCustomInterval("");
-              setSelectedDate(undefined);
-            }}
-          />
-
-          <AuditorSelect auditor={auditor} onAuditorChange={setAuditor} />
-
-          {auditType && (
-            <AuditFrequencySelect
-              auditType={auditType}
-              auditFrequency={auditFrequency}
-              customInterval={customInterval}
-              selectedDate={selectedDate}
-              onAuditFrequencyChange={setAuditFrequency}
-              onCustomIntervalChange={setCustomInterval}
-              onSelectedDateChange={setSelectedDate}
-            />
+          {frequency === "daily" && (
+            <div className="space-y-2">
+              <Label htmlFor="dailyInterval">Kaç günde bir?</Label>
+              <Input
+                id="dailyInterval"
+                type="number"
+                value={dailyInterval}
+                onChange={(e) => setDailyInterval(Number(e.target.value))}
+                min={1}
+              />
+            </div>
+          )}
+          {frequency === "weekly" && (
+            <div className="space-y-2">
+              <Label htmlFor="weeklyDay">
+                Haftanın Kaçıncı Günü? (1=Pazartesi ... 7=Pazar)
+              </Label>
+              <Input
+                id="weeklyDay"
+                type="number"
+                value={weeklyDay}
+                onChange={(e) => setWeeklyDay(Number(e.target.value))}
+                min={1}
+                max={7}
+              />
+            </div>
+          )}
+          {frequency === "monthly" && (
+            <div className="space-y-2">
+              <Label htmlFor="monthlyDay">Ayın Kaçıncı Günü? (1-31)</Label>
+              <Input
+                id="monthlyDay"
+                type="number"
+                value={monthlyDay}
+                onChange={(e) => setMonthlyDay(Number(e.target.value))}
+                min={1}
+                max={31}
+              />
+            </div>
           )}
 
-          {auditType && (auditFrequency || customInterval || selectedDate) && (
-            <AuditSummary
-              auditCategory={auditCategory}
-              auditType={auditType}
-              auditFrequency={auditFrequency}
-              customInterval={customInterval}
-              selectedDate={selectedDate}
-              auditor={auditor}
-            />
-          )}
-
-          <div className="flex items-center justify-center pt-4">
-            <Button onClick={handleSave} className="w-full sm:w-auto">
-              Kaydet
-            </Button>
+          <div className="space-y-2">
+            <Label htmlFor="auditor">Sorumlu Denetçi</Label>
+            <Select
+              value={assignedAuditorId}
+              onValueChange={setAssignedAuditorId}
+            >
+              <SelectTrigger id="auditor">
+                <SelectValue placeholder="Denetçi seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockAuditors.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
+        <CardFooter>
+          {!editingId ? (
+            <Button onClick={handleCreate} className="w-full">
+              <Plus className="w-4 h-4 mr-2" /> Ayar Oluştur
+            </Button>
+          ) : (
+            <Button onClick={handleUpdate} className="w-full">
+              <Check className="w-4 h-4 mr-2" /> Ayarı Güncelle
+            </Button>
+          )}
+        </CardFooter>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {settings.map((s) => {
+          const auditor = mockAuditors.find(
+            (a) => a.id === s.assignedAuditorId
+          );
+          return (
+            <Card key={s.id} className="shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  {s.frequency.charAt(0).toUpperCase() + s.frequency.slice(1)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {s.frequency === "daily" && (
+                  <p>Her {s.dailyInterval} günde bir</p>
+                )}
+                {s.frequency === "weekly" && (
+                  <p>Haftanın {s.weeklyDay}. günü</p>
+                )}
+                {s.frequency === "monthly" && <p>Ayın {s.monthlyDay}. günü</p>}
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  <p>Sorumlu Denetçi: {auditor ? auditor.name : "N/A"}</p>
+                </div>
+              </CardContent>
+              <CardFooter className="justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingId(s.id);
+                    setFrequency(s.frequency);
+                    setAssignedAuditorId(s.assignedAuditorId);
+                    if (s.dailyInterval) setDailyInterval(s.dailyInterval);
+                    if (s.weeklyDay) setWeeklyDay(s.weeklyDay);
+                    if (s.monthlyDay) setMonthlyDay(s.monthlyDay);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" /> Düzenle
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    deleteSetting(s.id);
+                    toast({
+                      title: "Ayar Silindi",
+                      description: "Denetim ayarı başarıyla silindi.",
+                      variant: "destructive",
+                      duration: 3000,
+                    });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> Sil
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
+      <Toaster />
     </div>
   );
 }

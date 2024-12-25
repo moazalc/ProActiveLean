@@ -1,209 +1,486 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuditStore } from "@/store/useAuditStore";
+import { useSoruHavuzuStore } from "@/store/useSoruHavuzuStore";
+import { useChecklistStore } from "@/store/useChecklistStore";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { AuditDialog } from "@/components/denetimleri/audit-dialog";
-import { AuditFilters } from "@/components/denetimleri/audit-filters";
-import { StatusCards } from "@/components/denetimleri/status-card";
-import { AuditList } from "@/components/denetimleri/audit-list";
-import { useAudits } from "@/hooks/use-audits";
-import { useLocationsAndUsers } from "@/hooks/use-locations-and-users";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreVertical, Edit2, PlayCircle, Trash2 } from "lucide-react";
-import Link from "next/link";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { AuditQuestion } from "@/types/audits";
+import {
+  PlusCircle,
+  CheckCircle,
+  X,
+  Trash2,
+  Calendar,
+  User,
+  MapPin,
+} from "lucide-react";
+import AuditQuestionCard from "./AuditQuestionCard";
 
-export default function ChecklistAudits() {
-  const [isAddAuditOpen, setIsAddAuditOpen] = useState(false);
-  const [editingAudit, setEditingAudit] = useState<{ id: string } | null>(null);
-  const [filterMonth, setFilterMonth] = useState<Date | undefined>();
-  const [filterLocation, setFilterLocation] = useState<string>("");
-  const [filterAuditor, setFilterAuditor] = useState<string>("");
+// Example auditors for selection
+const mockAuditors = [
+  { id: "1", name: "Ali" },
+  { id: "2", name: "Ayşe" },
+  { id: "3", name: "Mehmet" },
+];
 
-  const { audits, addAudit, updateAudit, deleteAudit } = useAudits();
-  const { locations, users } = useLocationsAndUsers();
+// Example locations for selection
+const mockLocations = ["", "Katlar", "Mutfak", "Bahçe", "Lobi"];
+
+export default function DenetimlerPage() {
+  const { audits, createAudit, finishAudit, deleteAudit } = useAuditStore();
+
+  const { checklists } = useChecklistStore();
+  const { categories } = useSoruHavuzuStore();
   const { toast } = useToast();
 
-  const handleSaveAudit = (auditData: any) => {
-    if (editingAudit) {
-      updateAudit(editingAudit.id, auditData);
-      toast({
-        title: "Denetim Güncellendi",
-        description: "Denetim başarıyla güncellendi.",
-        variant: "default",
-      });
-    } else {
-      addAudit(auditData);
-      toast({
-        title: "Denetim Eklendi",
-        description: "Yeni denetim başarıyla eklendi.",
-        variant: "default",
-      });
-    }
-    setIsAddAuditOpen(false);
-    setEditingAudit(null);
-  };
+  // Fields for creating a new audit
+  const [selectedChecklistId, setSelectedChecklistId] = useState("");
+  const [selectedAuditorId, setSelectedAuditorId] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
-  const handleDeleteAudit = (id: string) => {
-    deleteAudit(id);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+
+  // Filters
+  const [filterAuditor, setFilterAuditor] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
+
+  // Stats
+  const [statCompleted, setStatCompleted] = useState(0);
+  const [statNotStarted, setStatNotStarted] = useState(0);
+  const [statExpired, setStatExpired] = useState(0);
+
+  // We only allow creating audits from "completed" checklists
+  const completedChecklists = checklists.filter((cl) => cl.completed);
+
+  // We'll compute filtered audits in a local state
+  const [filteredAudits, setFilteredAudits] = useState(audits);
+
+  // Recompute filtered audits + stats whenever audits or filter changes
+  useEffect(() => {
+    let temp = [...audits];
+
+    // Filter by location
+    if (filterLocation) {
+      temp = temp.filter((a) => a.location === filterLocation);
+    }
+
+    // Filter by auditor
+    if (filterAuditor) {
+      temp = temp.filter((a) => a.assignedAuditorId === filterAuditor);
+    }
+
+    // Now compute stats:
+    let completedCount = 0;
+    let notStartedCount = 0;
+    let expiredCount = 0;
+
+    const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+    temp.forEach((audit) => {
+      // Completed
+      if (audit.completed) completedCount++;
+
+      // Not Started = none of the main or sub-questions answered
+      const totalQuestions = audit.questions.length;
+      let answeredCount = 0;
+      audit.questions.forEach((q) => {
+        if (q.answered) answeredCount++;
+        if (q.subQuestions) {
+          q.subQuestions.forEach((sq) => {
+            if (sq.answered) answeredCount++;
+          });
+        }
+      });
+      if (answeredCount === 0 && !audit.completed) {
+        notStartedCount++;
+      }
+
+      // Expired = dueDate < today, not completed
+      if (!audit.completed && audit.dueDate && audit.dueDate < today) {
+        expiredCount++;
+      }
+    });
+
+    setStatCompleted(completedCount);
+    setStatNotStarted(notStartedCount);
+    setStatExpired(expiredCount);
+
+    setFilteredAudits(temp);
+  }, [audits, filterLocation, filterAuditor]);
+
+  /** CREATE AUDIT Handler */
+  const handleCreateAudit = () => {
+    if (!selectedChecklistId || !selectedAuditorId || !dueDate) return;
+
+    // 1) Find the chosen checklist
+    const checklist = checklists.find((cl) => cl.id === selectedChecklistId);
+    if (!checklist) return;
+
+    // 2) Gather questions from Soru Havuzu, repeated for each item in the checklist
+    const allQuestions: AuditQuestion[] = [];
+    categories.forEach((cat) => {
+      cat.mainQuestions.forEach((mq) => {
+        checklist.items.forEach((item) => {
+          // Build subQuestions array
+          let subQs = undefined;
+          if (mq.subQuestions && mq.subQuestions.length > 0) {
+            subQs = mq.subQuestions.map((subq) => ({
+              id: subq.id,
+              text: subq.questionText,
+              answered: false,
+            }));
+          }
+
+          allQuestions.push({
+            id: crypto.randomUUID(),
+            text: mq.questionText,
+            category: cat.category,
+            itemLabel: item.label,
+            answered: false,
+            subQuestions: subQs,
+          });
+        });
+      });
+    });
+
+    // 3) Create the new audit in Zustand
+    createAudit(
+      selectedChecklistId,
+      selectedAuditorId,
+      selectedLocation,
+      dueDate,
+      allQuestions
+    );
+
+    // Clear the form
+    setSelectedChecklistId("");
+    setSelectedAuditorId("");
+    setSelectedLocation("");
+    setDueDate("");
+    setCreateDialogOpen(false);
+
     toast({
-      title: "Denetim Silindi",
-      description: "Denetim başarıyla silindi.",
-      variant: "destructive",
+      title: "Denetim Oluşturuldu",
+      description: "Yeni denetim başarıyla oluşturuldu.",
+      duration: 3000,
     });
   };
 
-  // Mock audit data for example
-  const mockAudit = {
-    id: "1",
-    locationCategoryId: "Mutfak",
-    createdByUserId: "Ahmet Yılmaz",
-    denetci: "Ayşe Demir",
-    denetimTarihi: new Date("2024-12-30"),
-    status: "Yapılacaklar",
-    questionCount: 20,
-    yesCount: 15,
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Tarih Geçmişler":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "Denetim Tarihi Yaklaşanlar":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "Yapılacaklar":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
-      case "Aksiyonları Devam Edenler":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case "Kapanmışlar":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
-    }
-  };
-
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-          Checklist Denetimleri
-        </h1>
-        <Button
-          onClick={() => setIsAddAuditOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Denetim Ekle
-        </Button>
-      </div>
+    <div className="container mx-auto p-4 space-y-6">
+      <h1 className="text-3xl font-bold text-primary">Denetimler</h1>
 
-      <AuditFilters
-        filterMonth={filterMonth}
-        setFilterMonth={setFilterMonth}
-        filterLocation={filterLocation}
-        setFilterLocation={setFilterLocation}
-        filterAuditor={filterAuditor}
-        setFilterAuditor={setFilterAuditor}
-        locations={locations}
-        users={users}
-      />
-
-      <StatusCards audits={audits} />
-
-      {/* Mock Audit Card Example */}
-      <Card className="hover:shadow-md transition-shadow duration-200 dark:bg-gray-800 dark:border-gray-700">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div className="space-y-2 mb-4 sm:mb-0">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                Kategori:{" "}
-                <span className="font-normal">
-                  {mockAudit.locationCategoryId}
-                </span>
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Sorumlu: {mockAudit.createdByUserId} | Denetçi:{" "}
-                {mockAudit.denetci}
-              </p>
-              <div className="flex flex-wrap gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <span>
-                  Denetim Tarihi:{" "}
-                  {mockAudit.denetimTarihi.toLocaleDateString("tr-TR")}
-                </span>
-                <span>
-                  Puan:{" "}
-                  {Math.round(
-                    (mockAudit.yesCount / mockAudit.questionCount) * 100
-                  )}
-                  %
-                </span>
+      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="col-span-full lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Filtreler ve İstatistikler</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 items-end mb-4">
+              <div>
+                <Label>Lokasyon</Label>
+                <Select
+                  value={filterLocation}
+                  onValueChange={setFilterLocation}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Lokasyon Filtre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Hepsi</SelectItem>
+                    {mockLocations
+                      .filter((loc) => loc !== "")
+                      .map((loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {loc}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Denetçi</Label>
+                <Select value={filterAuditor} onValueChange={setFilterAuditor}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Denetçi Filtre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Hepsi</SelectItem>
+                    {mockAuditors.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                  mockAudit.status
-                )}`}
-              >
-                {mockAudit.status}
-              </span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-600 dark:text-gray-400"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setEditingAudit(mockAudit)}>
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Düzenle
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDeleteAudit(mockAudit.id)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Sil
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/denetimler/${mockAudit.id}`}>
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      Denetim Başla
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-wrap gap-4 justify-around">
+              <StatBox
+                title="Tamamlanmış"
+                value={statCompleted}
+                color="bg-green-100"
+              />
+              <StatBox
+                title="Başlanmamış"
+                value={statNotStarted}
+                color="bg-blue-100"
+              />
+              <StatBox
+                title="Süresi Geçmiş"
+                value={statExpired}
+                color="bg-red-100"
+              />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <AuditList
-        audits={audits}
-        filterMonth={filterMonth}
-        filterLocation={filterLocation}
-        filterAuditor={filterAuditor}
-        onEdit={setEditingAudit}
-        onDelete={handleDeleteAudit}
-      />
+        <Card>
+          <CardHeader>
+            <CardTitle>Yeni Denetim</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Yeni Denetim Oluştur
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Yeni Denetim Oluştur</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Bitmiş Checklist Seç</Label>
+                    <Select
+                      value={selectedChecklistId}
+                      onValueChange={setSelectedChecklistId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Checklist seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {completedChecklists.map((cl) => (
+                          <SelectItem key={cl.id} value={cl.id}>
+                            {cl.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Denetçi Seç</Label>
+                    <Select
+                      value={selectedAuditorId}
+                      onValueChange={setSelectedAuditorId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Denetçi seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockAuditors.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Lokasyon</Label>
+                    <Select
+                      value={selectedLocation}
+                      onValueChange={setSelectedLocation}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Lokasyon seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Seçiniz</SelectItem>
+                        {mockLocations
+                          .filter((loc) => loc !== "")
+                          .map((loc) => (
+                            <SelectItem key={loc} value={loc}>
+                              {loc}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Due Date</Label>
+                    <Input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleCreateAudit} className="w-full">
+                    Oluştur
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+      </div>
 
-      <AuditDialog
-        isOpen={isAddAuditOpen}
-        onOpenChange={setIsAddAuditOpen}
-        onSave={handleSaveAudit}
-        editingAudit={editingAudit}
-        locations={locations}
-        users={users}
-      />
+      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {filteredAudits.map((audit) => {
+          const isCompleted = audit.completed;
+          const today = new Date().toISOString().split("T")[0];
+          const expired = !isCompleted && audit.dueDate < today;
+
+          return (
+            <Card key={audit.id} className="shadow-lg flex flex-col">
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span className="text-sm">
+                    Audit ID: {audit.id.slice(0, 8)}
+                  </span>
+                  {isCompleted ? (
+                    <CheckCircle className="text-green-500" />
+                  ) : expired ? (
+                    <X className="text-red-500" />
+                  ) : (
+                    <X className="text-yellow-500" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">{audit.assignedAuditorId}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm">{audit.location}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-sm">{audit.dueDate}</span>
+                </div>
+                <p className="text-sm font-medium">
+                  Durum:
+                  {isCompleted
+                    ? "Tamamlandı"
+                    : expired
+                    ? "Süresi Geçmiş"
+                    : "Devam Ediyor"}
+                </p>
+              </CardContent>
+              <CardFooter className="flex-col sm:flex-row gap-2">
+                {!isCompleted && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedAuditId(audit.id)}
+                  >
+                    Denetim Başlat
+                  </Button>
+                )}
+                {!isCompleted && (
+                  <Button
+                    onClick={() => {
+                      finishAudit(audit.id);
+                      toast({
+                        title: "Denetim Tamamlandı",
+                        description: "Denetim başarıyla tamamlandı.",
+                        duration: 3000,
+                      });
+                    }}
+                  >
+                    Denetimi Bitir
+                  </Button>
+                )}
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteAudit(audit.id);
+                    toast({
+                      title: "Denetim Silindi",
+                      description: "Denetim başarıyla silindi.",
+                      variant: "destructive",
+                      duration: 3000,
+                    });
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Sil
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
+
+      {filteredAudits.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-6">
+            <p className="text-lg font-medium text-muted-foreground">
+              Seçilen filtrelere göre denetim bulunmuyor.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedAuditId && (
+        <AuditQuestionCard
+          auditId={selectedAuditId}
+          onClose={() => setSelectedAuditId(null)}
+        />
+      )}
+
+      <Toaster />
+    </div>
+  );
+}
+
+function StatBox({
+  title,
+  value,
+  color,
+}: {
+  title: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <div
+      className={`w-32 h-16 rounded flex flex-col items-center justify-center ${color}`}
+    >
+      <p className="text-sm font-medium">{title}</p>
+      <p className="text-xl font-bold">{value}</p>
     </div>
   );
 }
