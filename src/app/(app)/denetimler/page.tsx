@@ -40,6 +40,8 @@ import {
   Calendar,
   User,
   MapPin,
+  Loader,
+  CalendarX2,
 } from "lucide-react";
 import AuditQuestionCard from "./AuditQuestionCard";
 
@@ -53,9 +55,14 @@ const mockAuditors = [
 // Example locations for selection
 const mockLocations = ["", "Katlar", "Mutfak", "Bahçe", "Lobi"];
 
+/** Helper to get auditor name by ID. */
+function getAuditorNameById(id: string): string {
+  const found = mockAuditors.find((aud) => aud.id === id);
+  return found ? found.name : `Denetçi #${id}`; // Fallback if not found
+}
+
 export default function DenetimlerPage() {
   const { audits, createAudit, finishAudit, deleteAudit } = useAuditStore();
-
   const { checklists } = useChecklistStore();
   const { categories } = useSoruHavuzuStore();
   const { toast } = useToast();
@@ -68,6 +75,10 @@ export default function DenetimlerPage() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+
+  // Show/hide confirmation dialog for delete
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [auditToDelete, setAuditToDelete] = useState<string | null>(null);
 
   // Filters
   const [filterAuditor, setFilterAuditor] = useState("");
@@ -89,12 +100,12 @@ export default function DenetimlerPage() {
     let temp = [...audits];
 
     // Filter by location
-    if (filterLocation) {
+    if (filterLocation && filterLocation !== "all") {
       temp = temp.filter((a) => a.location === filterLocation);
     }
 
     // Filter by auditor
-    if (filterAuditor) {
+    if (filterAuditor && filterAuditor !== "all") {
       temp = temp.filter((a) => a.assignedAuditorId === filterAuditor);
     }
 
@@ -113,10 +124,11 @@ export default function DenetimlerPage() {
       const totalQuestions = audit.questions.length;
       let answeredCount = 0;
       audit.questions.forEach((q) => {
-        if (q.answered) answeredCount++;
+        // If we’re using "YES"|"NO"|"NA", then "answered" means q.answer != undefined
+        if (q.answer) answeredCount++;
         if (q.subQuestions) {
           q.subQuestions.forEach((sq) => {
-            if (sq.answered) answeredCount++;
+            if (sq.answer) answeredCount++;
           });
         }
       });
@@ -156,7 +168,7 @@ export default function DenetimlerPage() {
             subQs = mq.subQuestions.map((subq) => ({
               id: subq.id,
               text: subq.questionText,
-              answered: false,
+              answer: undefined, // was answered: false
             }));
           }
 
@@ -165,7 +177,7 @@ export default function DenetimlerPage() {
             text: mq.questionText,
             category: cat.category,
             itemLabel: item.label,
-            answered: false,
+            answer: undefined, // was answered: false
             subQuestions: subQs,
           });
         });
@@ -195,10 +207,31 @@ export default function DenetimlerPage() {
     });
   };
 
+  // Helper to get the Checklist name for an Audit
+  const getChecklistTitle = (checklistId: string) => {
+    const cl = checklists.find((c) => c.id === checklistId);
+    return cl ? cl.title : "Untitled";
+  };
+
+  /** DELETE Confirm Handler */
+  const handleConfirmDelete = () => {
+    if (!auditToDelete) return;
+    deleteAudit(auditToDelete);
+    setShowDeleteConfirm(false);
+    setAuditToDelete(null);
+    toast({
+      title: "Denetim Silindi",
+      description: "Denetim başarıyla silindi.",
+      variant: "destructive",
+      duration: 3000,
+    });
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold text-primary">Denetimler</h1>
 
+      {/* Filtreler & İstatistikler */}
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <Card className="col-span-full lg:col-span-2">
           <CardHeader>
@@ -248,22 +281,23 @@ export default function DenetimlerPage() {
               <StatBox
                 title="Tamamlanmış"
                 value={statCompleted}
-                color="bg-green-100"
+                color="bg-green-200"
               />
               <StatBox
                 title="Başlanmamış"
                 value={statNotStarted}
-                color="bg-blue-100"
+                color="bg-yellow-200"
               />
               <StatBox
                 title="Süresi Geçmiş"
                 value={statExpired}
-                color="bg-red-100"
+                color="bg-red-200"
               />
             </div>
           </CardContent>
         </Card>
 
+        {/* Yeni Denetim Card */}
         <Card>
           <CardHeader>
             <CardTitle>Yeni Denetim</CardTitle>
@@ -356,33 +390,60 @@ export default function DenetimlerPage() {
         </Card>
       </div>
 
+      {/* Audits List */}
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredAudits.map((audit) => {
           const isCompleted = audit.completed;
           const today = new Date().toISOString().split("T")[0];
           const expired = !isCompleted && audit.dueDate < today;
 
+          // (B) We'll use the checklist title to name the audit, e.g. "Odalar Audit"
+          const checklistTitle = getChecklistTitle(audit.checklistId);
+          const auditorName = getAuditorNameById(audit.assignedAuditorId);
+
           return (
             <Card key={audit.id} className="shadow-lg flex flex-col">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
-                  <span className="text-sm">
-                    Audit ID: {audit.id.slice(0, 8)}
+                  {/* 2) Show "Odalar Audit" or similar */}
+                  <span className="text-sm font-semibold">
+                    {checklistTitle} Audit
                   </span>
+
+                  {/* Status */}
                   {isCompleted ? (
-                    <CheckCircle className="text-green-500" />
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="text-green-500" />
+                      <span className="text-green-500">Tamamlandı</span>
+                    </div>
                   ) : expired ? (
-                    <X className="text-red-500" />
+                    <div className="flex items-center space-x-2">
+                      <CalendarX2 className="text-red-500" />
+                      <span className="text-red-500">Süresi Geçmiş</span>
+                    </div>
                   ) : (
-                    <X className="text-yellow-500" />
+                    <div className="flex items-center space-x-2">
+                      <Loader className="text-yellow-500" />
+                      <span className="text-yellow-500">Devam Ediyor</span>
+                    </div>
                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {/* (1) Show Denetçi name + Sorumlu name */}
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span className="text-sm">{audit.assignedAuditorId}</span>
+                  <span className="text-sm">
+                    <strong>Denetçi:</strong> {auditorName}
+                  </span>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">
+                    <strong>Sorumlu:</strong> {audit.createdBy}
+                  </span>
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <MapPin className="w-4 h-4" />
                   <span className="text-sm">{audit.location}</span>
@@ -391,8 +452,14 @@ export default function DenetimlerPage() {
                   <Calendar className="w-4 h-4" />
                   <span className="text-sm">{audit.dueDate}</span>
                 </div>
+
                 <p className="text-sm font-medium">
-                  Durum:
+                  {/* Show truncated audit ID if desired */}
+                  Audit ID: {audit.id.slice(0, 8)}
+                </p>
+
+                <p className="text-sm">
+                  Durum:{" "}
                   {isCompleted
                     ? "Tamamlandı"
                     : expired
@@ -401,7 +468,15 @@ export default function DenetimlerPage() {
                 </p>
               </CardContent>
               <CardFooter className="flex-col sm:flex-row gap-2">
-                {!isCompleted && (
+                {/* (4) If completed -> “Denetimi Görüntüle” else “Denetim Başlat” */}
+                {isCompleted ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedAuditId(audit.id)}
+                  >
+                    Denetimi Görüntüle
+                  </Button>
+                ) : (
                   <Button
                     variant="outline"
                     onClick={() => setSelectedAuditId(audit.id)}
@@ -409,6 +484,8 @@ export default function DenetimlerPage() {
                     Denetim Başlat
                   </Button>
                 )}
+
+                {/* If not completed -> “Denetimi Bitir” */}
                 {!isCompleted && (
                   <Button
                     onClick={() => {
@@ -423,16 +500,13 @@ export default function DenetimlerPage() {
                     Denetimi Bitir
                   </Button>
                 )}
+
+                {/* (3) Delete with confirmation dialog */}
                 <Button
                   variant="destructive"
                   onClick={() => {
-                    deleteAudit(audit.id);
-                    toast({
-                      title: "Denetim Silindi",
-                      description: "Denetim başarıyla silindi.",
-                      variant: "destructive",
-                      duration: 3000,
-                    });
+                    setShowDeleteConfirm(true);
+                    setAuditToDelete(audit.id);
                   }}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -454,6 +528,28 @@ export default function DenetimlerPage() {
         </Card>
       )}
 
+      {/* (3) Confirmation Dialog for deleting an Audit */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Denetim Sil</DialogTitle>
+          </DialogHeader>
+          <p>Bu denetimi silmek istediğinizden emin misiniz?</p>
+          <div className="flex justify-end gap-4 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Vazgeç
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Sil
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* The question card (read/write) */}
       {selectedAuditId && (
         <AuditQuestionCard
           auditId={selectedAuditId}
@@ -466,6 +562,7 @@ export default function DenetimlerPage() {
   );
 }
 
+/** Simple stat box for your counts */
 function StatBox({
   title,
   value,

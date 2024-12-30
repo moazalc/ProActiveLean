@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { signIn } from "next-auth/react";
+import Image from "next/image";
 
 export function LoginForm() {
   const [data, setData] = useState({
@@ -26,9 +27,17 @@ export function LoginForm() {
   return (
     <Card className="w-[350px]">
       <CardHeader>
-        <CardTitle>Login</CardTitle>
+        <div className="items-center justify-center flex">
+          <Image
+            src="/images/logo.png"
+            alt="ProActiveLean Logo"
+            width={150}
+            height={150}
+          />
+        </div>
+        <CardTitle>Giriş Yap</CardTitle>
         <CardDescription>
-          Enter your credentials to access your account.
+          Hesabınıza erişmek için kimlik bilgilerinizi girin.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -40,7 +49,7 @@ export function LoginForm() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder=""
                 value={data.email}
                 onChange={(e) => setData({ ...data, email: e.target.value })}
                 required
@@ -52,7 +61,7 @@ export function LoginForm() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder=""
                 value={data.password}
                 onChange={(e) => setData({ ...data, password: e.target.value })}
                 required
@@ -61,7 +70,7 @@ export function LoginForm() {
           </div>
 
           <Button className="w-full mt-4" type="submit">
-            Login
+            Giriş Yap
           </Button>
         </form>
       </CardContent>

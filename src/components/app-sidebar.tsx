@@ -32,17 +32,17 @@ const data = {
       isActive: true,
     },
     {
-      title: "Checklist",
-      url: "/checklist",
+      title: "Görevler",
+      url: "/gorevler",
       icon: ScrollText,
       items: [
         {
-          title: "Checklist",
-          url: "/checklist",
+          title: "Görevler",
+          url: "/gorevler",
         },
         {
-          title: "Checklist Yönetimi",
-          url: "/checklist/yonetim",
+          title: "Görevler Yönetimi",
+          url: "/gorevler/yonetim",
         },
       ],
     },
@@ -115,7 +115,7 @@ const data = {
           url: "/soruhavuzu",
         },
         {
-          title: "Checklist Havuzu",
+          title: "Görevler Havuzu",
           url: "/soruhavuzu/checklist",
         },
       ],
@@ -134,8 +134,8 @@ const data = {
           url: "/ayarlar/tanimlama",
         },
         {
-          title: "Görevler",
-          url: "/ayarlar/gorevler",
+          title: "Roller Yöneticisi",
+          url: "/ayarlar/roller",
         },
       ],
     },

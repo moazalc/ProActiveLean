@@ -1,10 +1,10 @@
 // src/store/useAuditStore.ts
 
-'use client';
+"use client";
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Audit, AuditQuestion } from '@/types/audits';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { Audit, AuditQuestion } from "@/types/audits";
 
 interface AuditState {
   audits: Audit[];
@@ -17,22 +17,38 @@ interface AuditState {
     questions: AuditQuestion[]
   ) => void;
 
+  // Updated: accept "YES"|"NO"|"NA"
   markAnswer: (
     auditId: string,
     questionId: string,
-    answered: boolean
+    answer: "YES" | "NO" | "NA"
   ) => void;
 
-  // NEW: handle sub-question checkboxes
   markSubQuestionAnswer: (
     auditId: string,
     parentQId: string,
     subQId: string,
-    answered: boolean
+    answer: "YES" | "NO" | "NA"
   ) => void;
 
-  addPhotoToQuestion: (auditId: string, questionId: string, photo: string) => void;
-  addCommentToQuestion: (auditId: string, questionId: string, comment: string) => void;
+  addPhotoToQuestion: (
+    auditId: string,
+    questionId: string,
+    photo: string
+  ) => void;
+
+  removePhotoFromQuestion: (
+    auditId: string,
+    questionId: string,
+    photoIndex: number
+  ) => void;
+
+  addCommentToQuestion: (
+    auditId: string,
+    questionId: string,
+    comment: string
+  ) => void;
+
   finishAudit: (auditId: string) => void;
   deleteAudit: (auditId: string) => void;
 }
@@ -51,34 +67,33 @@ export const useAuditStore = create(
           dueDate,
           questions,
           completed: false,
+          createdBy: "Admin",
         };
         set((state) => ({
           audits: [...state.audits, newAudit],
         }));
       },
 
-      markAnswer: (auditId, questionId, answered) => {
+      // Updated to store a string answer
+      markAnswer: (auditId, questionId, answer) => {
         set((state) => ({
           audits: state.audits.map((a) => {
-            if (a.id === auditId) {
-              return {
-                ...a,
-                questions: a.questions.map((q) =>
-                  q.id === questionId ? { ...q, answered } : q
-                ),
-              };
-            }
-            return a;
+            if (a.id !== auditId) return a;
+            return {
+              ...a,
+              questions: a.questions.map((q) => {
+                if (q.id !== questionId) return q;
+                return { ...q, answer };
+              }),
+            };
           }),
         }));
       },
 
-      // MARK SUB-QUESTION ANSWER
-      markSubQuestionAnswer: (auditId, parentQId, subQId, answered) => {
-        set((state) => {
-          const updated = state.audits.map((a) => {
+      markSubQuestionAnswer: (auditId, parentQId, subQId, answer) => {
+        set((state) => ({
+          audits: state.audits.map((a) => {
             if (a.id !== auditId) return a;
-
             return {
               ...a,
               questions: a.questions.map((q) => {
@@ -86,29 +101,46 @@ export const useAuditStore = create(
 
                 return {
                   ...q,
-                  subQuestions: q.subQuestions.map((sq) =>
-                    sq.id === subQId ? { ...sq, answered } : sq
-                  ),
+                  subQuestions: q.subQuestions.map((sq) => {
+                    if (sq.id !== subQId) return sq;
+                    return { ...sq, answer };
+                  }),
                 };
               }),
             };
-          });
-          return { audits: updated };
-        });
+          }),
+        }));
       },
 
       addPhotoToQuestion: (auditId, questionId, photo) => {
         set((state) => ({
           audits: state.audits.map((a) => {
-            if (a.id === auditId) {
-              return {
-                ...a,
-                questions: a.questions.map((q) =>
-                  q.id === questionId ? { ...q, photo } : q
-                ),
-              };
-            }
-            return a;
+            if (a.id !== auditId) return a;
+            return {
+              ...a,
+              questions: a.questions.map((q) => {
+                if (q.id !== questionId) return q;
+                const photos = q.photos || [];
+                return { ...q, photos: [...photos, photo] };
+              }),
+            };
+          }),
+        }));
+      },
+
+      removePhotoFromQuestion: (auditId, questionId, photoIndex) => {
+        set((state) => ({
+          audits: state.audits.map((a) => {
+            if (a.id !== auditId) return a;
+            return {
+              ...a,
+              questions: a.questions.map((q) => {
+                if (q.id !== questionId || !q.photos) return q;
+                const newPhotos = [...q.photos];
+                newPhotos.splice(photoIndex, 1);
+                return { ...q, photos: newPhotos };
+              }),
+            };
           }),
         }));
       },
@@ -116,15 +148,13 @@ export const useAuditStore = create(
       addCommentToQuestion: (auditId, questionId, comment) => {
         set((state) => ({
           audits: state.audits.map((a) => {
-            if (a.id === auditId) {
-              return {
-                ...a,
-                questions: a.questions.map((q) =>
-                  q.id === questionId ? { ...q, comment } : q
-                ),
-              };
-            }
-            return a;
+            if (a.id !== auditId) return a;
+            return {
+              ...a,
+              questions: a.questions.map((q) =>
+                q.id === questionId ? { ...q, comment } : q
+              ),
+            };
           }),
         }));
       },
@@ -134,13 +164,13 @@ export const useAuditStore = create(
           const updated = state.audits.map((a) => {
             if (a.id !== auditId) return a;
 
-            // Example scoring: # main questions answered + # sub-questions answered
+            // Example scoring: Count "YES" answers for main & sub questions
             let score = 0;
             a.questions.forEach((q) => {
-              if (q.answered) score++;
+              if (q.answer === "YES") score++;
               if (q.subQuestions && q.subQuestions.length > 0) {
                 q.subQuestions.forEach((sq) => {
-                  if (sq.answered) score++;
+                  if (sq.answer === "YES") score++;
                 });
               }
             });
@@ -162,7 +192,7 @@ export const useAuditStore = create(
       },
     }),
     {
-      name: 'audits-storage',
+      name: "audits-storage",
     }
   )
 );

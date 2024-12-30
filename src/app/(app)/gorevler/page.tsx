@@ -17,14 +17,20 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { CheckCircle, Clock, MapPin, Calendar, Star } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, Star, X } from "lucide-react";
 
 // Suppose the worker is Ayşe with ID "2"
 const currentWorkerId = "2";
 
 export default function MyChecklistsPage() {
-  const { checklists, toggleItem, addComment, addPhoto, finishChecklist } =
-    useChecklistStore();
+  const {
+    checklists,
+    toggleItem,
+    addComment,
+    addPhoto,
+    removePhoto,
+    finishChecklist,
+  } = useChecklistStore();
   const { toast } = useToast();
 
   // Filter for only checklists assigned to this worker
@@ -43,7 +49,7 @@ export default function MyChecklistsPage() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <h1 className="text-3xl font-bold text-primary">Benim Checklistlerim</h1>
+      <h1 className="text-3xl font-bold text-primary">Benim Görevlerim</h1>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {workerChecklists.map((cl) => (
           <Card key={cl.id} className="shadow-lg">
@@ -83,6 +89,7 @@ export default function MyChecklistsPage() {
                       toggleItem={toggleItem}
                       addComment={addComment}
                       addPhoto={addPhoto}
+                      removePhoto={removePhoto}
                     />
                   ))}
                 </div>
@@ -124,6 +131,7 @@ function ChecklistItemRow({
   toggleItem,
   addComment,
   addPhoto,
+  removePhoto,
 }: {
   checklistId: string;
   item: {
@@ -131,34 +139,52 @@ function ChecklistItemRow({
     label: string;
     checked: boolean;
     comment?: string;
-    photo?: string;
+    photos?: string[]; // <--- now an array of photos
   };
   disabled: boolean;
   toggleItem: (checklistId: string, itemId: string) => void;
   addComment: (checklistId: string, itemId: string, comment: string) => void;
+
+  // Updated to handle multiple photos
   addPhoto: (checklistId: string, itemId: string, photo: string) => void;
+  removePhoto: (
+    checklistId: string,
+    itemId: string,
+    photoIndex: number
+  ) => void;
 }) {
   const [localComment, setLocalComment] = useState(item.comment || "");
   const { toast } = useToast();
 
-  // For uploading an image file as base64
+  // For uploading multiple image files as base64
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target?.result;
-      if (typeof base64 === "string") {
-        addPhoto(checklistId, item.id, base64);
-        toast({
-          title: "Fotoğraf Yüklendi",
-          description: "Fotoğraf başarıyla yüklendi.",
-          duration: 3000,
-        });
-      }
-    };
-    reader.readAsDataURL(file);
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64 = ev.target?.result;
+        if (typeof base64 === "string") {
+          addPhoto(checklistId, item.id, base64);
+          toast({
+            title: "Fotoğraf Yüklendi",
+            description: "Fotoğraf başarıyla yüklendi.",
+            duration: 3000,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    removePhoto(checklistId, item.id, index);
+    toast({
+      title: "Fotoğraf Silindi",
+      description: "Fotoğraf kaldırıldı.",
+      duration: 3000,
+    });
   };
 
   return (
@@ -207,27 +233,44 @@ function ChecklistItemRow({
         </div>
       </div>
 
-      {/* Photo */}
+      <Separator />
+
+      {/* Photo(s) */}
       <div className="space-y-2">
         <Label htmlFor={`photo-${item.id}`}>Fotoğraf Yükle</Label>
         <Input
           id={`photo-${item.id}`}
           type="file"
           accept="image/*"
+          multiple // <--- allow multiple uploads
           onChange={handlePhotoUpload}
           disabled={disabled}
         />
+
+        {/* Render all photos in a grid/list */}
+        {item.photos && item.photos.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {item.photos.map((photo, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={photo}
+                  alt={`Fotoğraf ${index}`}
+                  className="max-h-32 rounded-md"
+                />
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(index)}
+                    className="absolute top-1 right-1 text-red-500 bg-white rounded-full p-1 shadow"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      {item.photo && (
-        <div className="mt-2">
-          <p className="text-sm font-medium mb-1">Yüklenen Fotoğraf:</p>
-          <img
-            src={item.photo}
-            alt="Uploaded"
-            className="max-h-32 rounded-md"
-          />
-        </div>
-      )}
     </div>
   );
 }

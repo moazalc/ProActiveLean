@@ -23,14 +23,22 @@ interface ChecklistState {
   ) => void;
   deleteChecklist: (checklistId: string) => void;
   assignUser: (checklistId: string, userId: string) => void;
-
-  // Admin adds items
   addItem: (checklistId: string, label: string) => void;
 
   // Worker actions
   toggleItem: (checklistId: string, itemId: string) => void;
   addComment: (checklistId: string, itemId: string, comment: string) => void;
+
+  /** Now appends a photo to the `photos` array. */
   addPhoto: (checklistId: string, itemId: string, photoBase64: string) => void;
+
+  /** Remove a photo from the `photos` array by index. */
+  removePhoto: (
+    checklistId: string,
+    itemId: string,
+    photoIndex: number
+  ) => void;
+
   finishChecklist: (checklistId: string) => void;
 }
 
@@ -39,7 +47,6 @@ export const useChecklistStore = create(
     (set, get) => ({
       checklists: [],
 
-      /** Creates a new checklist with title, location, dueDate */
       createChecklist: (title, location, dueDate) => {
         const newChecklist: Checklist = {
           id: crypto.randomUUID(),
@@ -55,7 +62,6 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Updates the checklist info (title, location, dueDate) */
       updateChecklist: (checklistId, title, location, dueDate) => {
         set((state) => ({
           checklists: state.checklists.map((cl) =>
@@ -64,14 +70,12 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Deletes a checklist entirely */
       deleteChecklist: (checklistId) => {
         set((state) => ({
           checklists: state.checklists.filter((cl) => cl.id !== checklistId),
         }));
       },
 
-      /** Assigns a user from a dropdown (admin) */
       assignUser: (checklistId, userId) => {
         set((state) => ({
           checklists: state.checklists.map((cl) =>
@@ -80,7 +84,6 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Adds an item to a checklist (admin) */
       addItem: (checklistId, label) => {
         set((state) => ({
           checklists: state.checklists.map((cl) => {
@@ -97,7 +100,6 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Worker toggles an item’s checkbox */
       toggleItem: (checklistId, itemId) => {
         set((state) => ({
           checklists: state.checklists.map((cl) => {
@@ -116,7 +118,6 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Worker adds a comment */
       addComment: (checklistId, itemId, comment) => {
         set((state) => ({
           checklists: state.checklists.map((cl) => {
@@ -133,31 +134,53 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Worker uploads a photo (base64) */
+      /** Append the new photo to the `photos` array. */
       addPhoto: (checklistId, itemId, photoBase64) => {
         set((state) => ({
           checklists: state.checklists.map((cl) => {
-            if (cl.id === checklistId) {
-              return {
-                ...cl,
-                items: cl.items.map((item) =>
-                  item.id === itemId ? { ...item, photo: photoBase64 } : item
-                ),
-              };
-            }
-            return cl;
+            if (cl.id !== checklistId) return cl;
+
+            return {
+              ...cl,
+              items: cl.items.map((item) => {
+                if (item.id !== itemId) return item;
+
+                const newPhotos = item.photos ? [...item.photos] : [];
+                newPhotos.push(photoBase64);
+                return { ...item, photos: newPhotos };
+              }),
+            };
           }),
         }));
       },
 
-      /** Worker finishes the checklist, compute score */
+      /** Remove a single photo by index from the `photos` array. */
+      removePhoto: (checklistId, itemId, photoIndex) => {
+        set((state) => ({
+          checklists: state.checklists.map((cl) => {
+            if (cl.id !== checklistId) return cl;
+
+            return {
+              ...cl,
+              items: cl.items.map((item) => {
+                if (item.id !== itemId || !item.photos) return item;
+
+                const updatedPhotos = [...item.photos];
+                updatedPhotos.splice(photoIndex, 1);
+                return { ...item, photos: updatedPhotos };
+              }),
+            };
+          }),
+        }));
+      },
+
       finishChecklist: (checklistId) => {
         set((state) => {
           const updated = state.checklists.map((cl) => {
             if (cl.id === checklistId) {
               const totalItems = cl.items.length;
               const checkedItems = cl.items.filter((i) => i.checked).length;
-              const score = checkedItems; // or totalItems - unchecked, etc.
+              const score = checkedItems; // Example scoring
               return { ...cl, completed: true, score };
             }
             return cl;

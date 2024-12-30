@@ -15,7 +15,7 @@ export interface ChecklistItem {
   label: string;
   checked: boolean;
   comment?: string;
-  photo?: string; // base64
+  photos?: string[]; // base64
 }
 
 export interface Checklist {

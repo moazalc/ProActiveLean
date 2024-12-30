@@ -3,7 +3,8 @@
 export interface SubAuditQuestion {
   id: string;
   text: string;
-  answered?: boolean;
+  /** Could be "YES", "NO", "NA", or undefined if not answered yet. */
+  answer?: "YES" | "NO" | "NA";
 }
 
 export interface AuditQuestion {
@@ -11,11 +12,12 @@ export interface AuditQuestion {
   text: string;
   category: string; // e.g. "Temizlik"
   itemLabel: string; // e.g. "Oda #1"
-  answered: boolean;
-  comment?: string;
-  photo?: string;
+  /** Could be "YES", "NO", "NA", or undefined if not answered yet. */
+  answer?: "YES" | "NO" | "NA";
 
-  // Sub-questions
+  comment?: string;
+  photos?: string[];
+
   subQuestions?: SubAuditQuestion[];
 }
 
@@ -23,10 +25,13 @@ export interface Audit {
   id: string;
   checklistId: string;
   assignedAuditorId: string;
-  location: string; // new field
-  dueDate: string; // new field, "YYYY-MM-DD" or ISO string
+  location: string;
+  dueDate: string;
   questions: AuditQuestion[];
 
   completed: boolean;
   score?: number;
+
+  /** Name of the creator of audit */
+  createdBy: string;
 }

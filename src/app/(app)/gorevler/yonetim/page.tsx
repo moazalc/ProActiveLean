@@ -58,9 +58,7 @@ export default function ChecklistManagerPage() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <h1 className="text-3xl font-bold text-primary">
-        Checklist Yönetim Sayfası
-      </h1>
+      <h1 className="text-3xl font-bold text-primary">Checklist Yönetim</h1>
 
       {/* LOCATION FILTER */}
       <Card className="w-full max-w-md">
