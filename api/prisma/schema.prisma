@@ -1,0 +1,483 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model user {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique @db.VarChar(255)
+  username  String    @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  createdAt DateTime  @default(now())
+  lastLogin DateTime?
+  roleId    Int
+  avatar    String?
+
+  role                    role                @relation(fields: [roleId], references: [id])
+  checklistQuestion       checklistQuestion[]
+  checklistQuestionUpdate checklistQuestion[] @relation("updatedByUser")
+  checklistAnswer         checklistAnswer[]
+  reviewSubject           reviewSubject[]
+  location                location[]
+
+  finding               finding[] // findings created by the user
+  findingAction         finding[]             @relation("findingAction") // actions taken by the user
+  request               request[] // requests created by the user
+  requestAction         request[]             @relation("requestAction") // actions taken by the user
+  workshop              workshop[] // workshops created by the user
+  workshopAttendee      workshopAttendee[] // workshops attended by the user
+  meeting               meeting[] // meetings created by the user
+  meetingAttendee       meetingAttendee[] // meetings attended by the user
+  meetingActionRequests meetingAction[]       @relation("meedingActionRequest") // actions requested by the user
+  meetingAction         meetingAction[]       @relation("meedingAction") // actions taken by the user
+  fieldTour             fieldTour[] // field tours created by the user
+  fieldTourAttendee     fieldTourAttendee[] // field tours attended by the user
+  activityReponsible    activity[]            @relation("responsibleUser") // activities where the user is responsible
+  activity              activity[]            @relation("appointedUser") // activities where the user is appointed
+  question              question[]
+  answer                answer[]
+  checklistsAssigned    checklistAssignment[]
+  checklistAssignment   checklistAssignment[] @relation("assignmentsBy")
+  checklistActivity     checklistActivity[]
+}
+
+model role {
+  id        Int     @id @default(autoincrement())
+  name      String
+  isAdmin   Boolean
+  isAuditor Boolean
+  canAnswer Boolean
+  users     user[]
+}
+
+model organization {
+  id          Int              @id @default(autoincrement())
+  name        String
+  logo        String?
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime?        @updatedAt
+  type        organizationType
+}
+
+enum organizationType {
+  Factory
+  Hospital
+  Hotel
+}
+
+// create controllers for this model
+model locationCategory {
+  id       Int               @id @default(autoincrement())
+  name     String
+  parentId Int?
+  parent   locationCategory? @relation("SubCategories", fields: [parentId], references: [id])
+
+  // organizationId Int
+  // organization  organization       @relation(fields: [organizationId], references: [id])
+  location            location[]
+  subCategories       locationCategory[]    @relation("SubCategories")
+  checklistAssignment checklistAssignment[]
+  checklistCategory   checklistCategory[]
+}
+
+// update this model
+model location {
+  id                Int       @id @default(autoincrement())
+  categoryId        Int
+  parentId          Int?
+  code              String
+  name              String
+  auditable         Boolean
+  responsibleUserId Int?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime? @updatedAt
+
+  // Relations
+  responsibleUser   user?               @relation(fields: [responsibleUserId], references: [id])
+  category          locationCategory    @relation(fields: [categoryId], references: [id])
+  parent            location?           @relation("SubLocations", fields: [parentId], references: [id])
+  finding           finding[]
+  request           request[]
+  workshop          workshop[]
+  activity          activity[]
+  meeting           meeting[]
+  review            review[]
+  reviewSubject     reviewSubject[]
+  subLocation       location[]          @relation("SubLocations")
+  fieldTour         fieldTour[]
+  checklistActivity checklistActivity[]
+  question          question[]
+}
+
+enum findingCategory {
+  Audit
+  Field_Tour
+  Workshop
+  Instant
+  Checklist
+}
+
+enum fiveSCategory {
+  Tertip
+  Duzen
+  Temizlik
+  Disiplin
+  Standartlastirma
+}
+
+enum hseCategory {
+  Saglik
+  Emniyet
+  Cevre
+  Standardizasyon
+  Disiplin
+}
+
+model finding {
+  // before
+  id                Int             @id @default(autoincrement())
+  category          findingCategory
+  fiveSCategory     fiveSCategory?
+  hseCategory       hseCategory?
+  workshopId        Int? // if the finding is related to a workshop
+  answerId          Int?
+  fieldTourId       Int?
+  checklistAnswerId Int?
+  status            findingStatus
+  relatedPlaceId    Int
+  createdDate       DateTime        @default(now())
+  dateToBeCompleted DateTime
+  findingUserId     Int
+  imgBefore         String?
+
+  findingDescription String
+  question           String?
+  finding            String?
+  // after
+  completionDate     DateTime?
+  actionTaken        String?
+  actionUserId       Int?
+  imgAfter           String?
+  // relations
+
+  checklistAnswer checklistAnswer? @relation(fields: [checklistAnswerId], references: [id])
+  answer          answer?          @relation(fields: [answerId], references: [id])
+  fieldTour       fieldTour?       @relation(fields: [fieldTourId], references: [id])
+  workshop        workshop?        @relation(fields: [workshopId], references: [id])
+  actionUser      user?            @relation("findingAction", fields: [actionUserId], references: [id])
+  findingUser     user             @relation(fields: [findingUserId], references: [id])
+  relatedPlace    location         @relation(fields: [relatedPlaceId], references: [id])
+}
+
+enum requestCategory {
+  AdditionalTime
+  Deviation
+}
+
+enum findingStatus {
+  Open
+  Closed
+}
+
+enum requestStatus {
+  Open
+  Closed
+}
+
+model request {
+  // before
+  id                Int             @id @default(autoincrement())
+  category          requestCategory
+  fiveSCategory     fiveSCategory?
+  hseCategory       hseCategory?
+  status            requestStatus
+  relatedPlaceId    Int
+  createdDate       DateTime        @default(now())
+  dateToBeCompleted DateTime
+  requestUserId     Int
+  imgBefore         String?
+
+  requestDescription String
+  question           String?
+  request            String?
+
+  // after
+  extensionDateRequest DateTime?
+  completionDate       DateTime?
+  actionTaken          String?
+  actionUserId         Int?
+  imgAfter             String?
+  // relations
+
+  actionUser   user?    @relation("requestAction", fields: [actionUserId], references: [id])
+  requestUser  user     @relation(fields: [requestUserId], references: [id])
+  relatedPlace location @relation(fields: [relatedPlaceId], references: [id])
+}
+
+model workshop {
+  id                Int       @id @default(autoincrement())
+  createdAt         DateTime  @default(now())
+  startDate         DateTime
+  completionDate    DateTime?
+  relatedPlaceId    Int
+  responsibleUserId Int
+  approved          Boolean   @default(false)
+  completed         Boolean
+  relatedPlace      location  @relation(fields: [relatedPlaceId], references: [id])
+  responsibleUser   user      @relation(fields: [responsibleUserId], references: [id])
+
+  workshopAttendee workshopAttendee[]
+  finding          finding[]
+}
+
+model workshopAttendee {
+  id         Int      @id @default(autoincrement())
+  workshopId Int
+  userId     Int
+  createdAt  DateTime @default(now())
+  attended   Boolean  @default(false)
+  workshop   workshop @relation(fields: [workshopId], references: [id])
+  user       user     @relation(fields: [userId], references: [id])
+
+  @@unique([workshopId, userId])
+}
+
+model fieldTour {
+  id                Int      @id @default(autoincrement())
+  relatedPlaceId    Int
+  relatedPlace      location @relation(fields: [relatedPlaceId], references: [id])
+  date              DateTime
+  responsibleUserId Int
+
+  responsibleUser   user                @relation(fields: [responsibleUserId], references: [id])
+  fieldTourAttendee fieldTourAttendee[]
+  finding           finding[]
+}
+
+model fieldTourAttendee {
+  id          Int       @id @default(autoincrement())
+  fieldTourId Int
+  userId      Int
+  createdAt   DateTime  @default(now())
+  attended    Boolean   @default(false)
+  fieldTour   fieldTour @relation(fields: [fieldTourId], references: [id])
+  user        user      @relation(fields: [userId], references: [id])
+
+  @@unique([fieldTourId, userId])
+}
+
+model activity {
+  id             Int            @id @default(autoincrement())
+  fiveSCategory  fiveSCategory?
+  hseCategory    hseCategory?
+  createdAt      DateTime       @default(now())
+  auditDate      DateTime
+  completionDate DateTime?
+  relatedPlaceId Int
+
+  responsibleUserId Int
+  appointedUserId   Int
+
+  responsibleUser user     @relation("responsibleUser", fields: [responsibleUserId], references: [id])
+  appointedUser   user     @relation("appointedUser", fields: [appointedUserId], references: [id])
+  relatedPlace    location @relation(fields: [relatedPlaceId], references: [id])
+  answer          answer[]
+}
+
+model meeting {
+  id                Int               @id @default(autoincrement())
+  createdAt         DateTime          @default(now())
+  startDate         DateTime
+  startTime         DateTime
+  endDate           DateTime?
+  relatedPlaceId    Int
+  responsibleUserId Int
+  approved          Boolean           @default(false)
+  completed         Boolean
+  relatedPlace      location          @relation(fields: [relatedPlaceId], references: [id])
+  responsibleUser   user              @relation(fields: [responsibleUserId], references: [id])
+  meetingAttendee   meetingAttendee[]
+  meetingAction     meetingAction[]
+}
+
+model meetingAttendee {
+  id        Int      @id @default(autoincrement())
+  meetingId Int
+  userId    Int
+  createdAt DateTime @default(now())
+  attended  Boolean  @default(false)
+  meeting   meeting  @relation(fields: [meetingId], references: [id])
+  user      user     @relation(fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+}
+
+model meetingAction {
+  id                Int      @id @default(autoincrement())
+  createdAt         DateTime @default(now())
+  meetingId         Int
+  description       String
+  status            Boolean?
+  requestedByUserId Int
+  requestedToUserId Int
+
+  meeting         meeting @relation(fields: [meetingId], references: [id])
+  requestedByUser user    @relation("meedingActionRequest", fields: [requestedByUserId], references: [id])
+  requestedToUser user    @relation("meedingAction", fields: [requestedToUserId], references: [id])
+}
+
+model question {
+  id              Int            @id @default(autoincrement())
+  parentId        Int?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime?      @updatedAt
+  fiveSCategory   fiveSCategory?
+  hseCategory     hseCategory?
+  question        String
+  relatedPlaceId  Int
+  createdByUserId Int
+
+  user         user      @relation(fields: [createdByUserId], references: [id])
+  relatedPlace location  @relation(fields: [relatedPlaceId], references: [id])
+  parent       question? @relation("SubQuestions", fields: [parentId], references: [id])
+
+  subQuestions question[] @relation("SubQuestions") // Each main question can have subquestions
+  answers      answer[]
+}
+
+model answer {
+  id               Int       @id @default(autoincrement())
+  questionId       Int
+  answer           Boolean?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+  answeredByUserId Int
+  activityId       Int
+
+  answeredBy user      @relation(fields: [answeredByUserId], references: [id])
+  question   question  @relation(fields: [questionId], references: [id])
+  activity   activity  @relation(fields: [activityId], references: [id])
+  finding    finding[]
+}
+
+model review {
+  id             Int            @id @default(autoincrement())
+  comment        String?
+  relatedPlaceId Int
+  customerName   String
+  createdAt      DateTime       @default(now())
+  viewed         Boolean
+  roomNo         String
+  relatedPlace   location       @relation(fields: [relatedPlaceId], references: [id])
+  reviewRating   reviewRating[]
+}
+
+model reviewSubject {
+  id             Int      @id @default(autoincrement())
+  name           String
+  relatedPlaceId Int
+  createdAt      DateTime @default(now())
+  createdBy      Int
+
+  createBy     user           @relation(fields: [createdBy], references: [id])
+  relatedPlace location       @relation(fields: [relatedPlaceId], references: [id])
+  reviewRating reviewRating[]
+}
+
+model reviewRating {
+  id              Int @id @default(autoincrement())
+  reviewId        Int
+  reviewSubjectId Int
+  score           Int
+
+  review        review        @relation(fields: [reviewId], references: [id])
+  reviewSubject reviewSubject @relation(fields: [reviewSubjectId], references: [id])
+}
+
+model checklistQuestion {
+  id       Int    @id @default(autoincrement())
+  question String
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime? @updatedAt
+  createdBy           Int
+  updatedBy           Int?
+  checklistCategoryId Int
+
+  checklistCategory checklistCategory @relation(fields: [checklistCategoryId], references: [id])
+  createBy          user              @relation(fields: [createdBy], references: [id])
+  updateBy          user?             @relation("updatedByUser", fields: [updatedBy], references: [id])
+  answers           checklistAnswer[]
+}
+
+model checklistCategory {
+  id                 Int    @id @default(autoincrement())
+  name               String
+  locationCategoryId Int
+
+  locationCategory  locationCategory    @relation(fields: [locationCategoryId], references: [id])
+  checklistQuestion checklistQuestion[]
+}
+
+model checklistAnswer {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  checkbox   Boolean?
+  createdAt  DateTime @default(now())
+  createdBy  Int
+  activityId Int
+  createBy   user     @relation(fields: [createdBy], references: [id])
+
+  activity checklistActivity @relation(fields: [activityId], references: [id])
+  question checklistQuestion @relation(fields: [questionId], references: [id])
+  finding  finding[]
+}
+
+model checklistAssignment {
+  id                 Int                     @id @default(autoincrement())
+  createdByUserId    Int
+  appointedUserId    Int
+  createdAt          DateTime                @default(now())
+  dateDue            DateTime
+  type               checklistAssignmentType
+  locationCategoryId Int
+  status             Boolean                 @default(false)
+  locationCategory   locationCategory        @relation(fields: [locationCategoryId], references: [id])
+  user               user                    @relation(fields: [appointedUserId], references: [id])
+  userBy             user                    @relation("assignmentsBy", fields: [createdByUserId], references: [id])
+  checklistActivity  checklistActivity[]
+}
+
+model checklistActivity {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  createdAt    DateTime @default(now())
+  locationId   Int
+  assignmentId Int
+  completed    Boolean  @default(false)
+
+  user            user                @relation(fields: [userId], references: [id])
+  location        location            @relation(fields: [locationId], references: [id])
+  assignment      checklistAssignment @relation(fields: [assignmentId], references: [id])
+  checklistAnswer checklistAnswer[]
+}
+
+enum checklistAssignmentType {
+  daily
+  weekly
+  monthly
+}
