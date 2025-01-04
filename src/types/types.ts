@@ -13,6 +13,7 @@ export interface MainQuestion {
   id: string;
   questionText: string;
   subQuestions: SubQuestion[];
+  locations: string[];
 }
 
 export interface CategoryQuestions {

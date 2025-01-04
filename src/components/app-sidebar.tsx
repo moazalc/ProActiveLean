@@ -12,6 +12,7 @@ import {
   ScrollText,
   Settings,
   ListChecks,
+  FileSearch,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -58,6 +59,26 @@ const data = {
         {
           title: "Denetim Ayarları",
           url: "/denetimler/ayarlari",
+        },
+      ],
+    },
+
+    {
+      title: "Bulgular",
+      url: "#",
+      icon: FileSearch,
+      items: [
+        {
+          title: "Bulgular",
+          url: "/bulgular",
+        },
+        {
+          title: "Onay Bekleyen Bulgular",
+          url: "/bulgular/onayBekleyenBulgular",
+        },
+        {
+          title: "Onaylanmış Bulgular",
+          url: "/bulgular/onaylanmisBulgular",
         },
       ],
     },

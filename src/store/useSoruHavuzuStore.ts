@@ -15,7 +15,11 @@ interface SoruHavuzuState {
   categories: CategoryQuestions[];
 
   // CRUD operations
-  addMainQuestion: (category: CategoryType, questionText: string) => void;
+  addMainQuestion: (
+    category: CategoryType,
+    questionText: string,
+    locations: string[]
+  ) => void;
   editMainQuestion: (
     category: CategoryType,
     mainQuestionId: string,
@@ -73,6 +77,7 @@ export const useSoruHavuzuStore = create<SoruHavuzuState>()(
             id: crypto.randomUUID(),
             questionText,
             subQuestions: [],
+            locations: [],
           };
           return {
             categories: state.categories.map((cat) => {
