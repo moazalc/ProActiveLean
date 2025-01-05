@@ -26,12 +26,14 @@ export interface Audit {
   checklistId: string;
   assignedAuditorId: string;
   location: string;
-  dueDate: string;
-  questions: AuditQuestion[];
 
+  dueDate: string;
+  dueTime?: string;
+
+  questions: AuditQuestion[];
   completed: boolean;
   score?: number;
 
-  /** Name of the creator of audit */
   createdBy: string;
+  createdAt?: string;
 }

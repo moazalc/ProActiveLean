@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useChecklistStore } from "@/store/useChecklistStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ export default function MyChecklistsPage() {
   return (
     <div className="container mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold text-primary">Benim Görevlerim</h1>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {workerChecklists.map((cl) => (
           <Card key={cl.id} className="shadow-lg">
@@ -67,7 +68,10 @@ export default function MyChecklistsPage() {
                 </div>
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span>{cl.dueDate}</span>
+                  {/* Show due date + time if available */}
+                  <span>
+                    {cl.dueDate} {cl.dueTime && `@ ${cl.dueTime}`}
+                  </span>
                 </div>
                 {cl.score !== undefined && (
                   <div className="flex items-center">
@@ -77,6 +81,7 @@ export default function MyChecklistsPage() {
                 )}
               </div>
             </CardHeader>
+
             <CardContent>
               <ScrollArea className="h-[300px] pr-4">
                 <div className="space-y-4">
@@ -85,7 +90,7 @@ export default function MyChecklistsPage() {
                       key={item.id}
                       checklistId={cl.id}
                       item={item}
-                      disabled={cl.completed}
+                      disabled={cl.completed} // entire checklist completed -> disable
                       toggleItem={toggleItem}
                       addComment={addComment}
                       addPhoto={addPhoto}
@@ -95,6 +100,7 @@ export default function MyChecklistsPage() {
                 </div>
               </ScrollArea>
             </CardContent>
+
             <CardFooter>
               {!cl.completed && (
                 <Button
@@ -109,6 +115,7 @@ export default function MyChecklistsPage() {
           </Card>
         ))}
       </div>
+
       {workerChecklists.length === 0 && (
         <Card>
           <CardContent className="text-center py-6">
@@ -119,11 +126,13 @@ export default function MyChecklistsPage() {
           </CardContent>
         </Card>
       )}
+
       <Toaster />
     </div>
   );
 }
 
+/** Represents a single item row with its 10-minute timer. */
 function ChecklistItemRow({
   checklistId,
   item,
@@ -139,13 +148,11 @@ function ChecklistItemRow({
     label: string;
     checked: boolean;
     comment?: string;
-    photos?: string[]; // <--- now an array of photos
+    photos?: string[];
   };
   disabled: boolean;
   toggleItem: (checklistId: string, itemId: string) => void;
   addComment: (checklistId: string, itemId: string, comment: string) => void;
-
-  // Updated to handle multiple photos
   addPhoto: (checklistId: string, itemId: string, photo: string) => void;
   removePhoto: (
     checklistId: string,
@@ -156,12 +163,34 @@ function ChecklistItemRow({
   const [localComment, setLocalComment] = useState(item.comment || "");
   const { toast } = useToast();
 
+  // ---- PER-ITEM TIMER LOGIC ----
+  // 10 minutes = 600 seconds
+  const [timeLeft, setTimeLeft] = useState(600);
+
+  // Decrement timer every second, unless item is disabled or checked
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // If the entire checklist is disabled or the item is checked, freeze the timer
+      if (disabled || item.checked) return;
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [disabled, item.checked]);
+
+  // Format the timer
+  const absTime = Math.abs(timeLeft);
+  const minutes = Math.floor(absTime / 60);
+  const seconds = absTime % 60;
+  const sign = timeLeft < 0 ? "-" : "";
+  const formattedTime = `${sign}${String(minutes).padStart(2, "0")}:${String(
+    seconds
+  ).padStart(2, "0")}`;
+
   // For uploading multiple image files as base64
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    Array.from(e.target.files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const base64 = ev.target?.result;
@@ -189,6 +218,15 @@ function ChecklistItemRow({
 
   return (
     <div className="space-y-4 p-4 bg-secondary rounded-lg">
+      {/* Timer Display (freeze if item.checked or disabled) */}
+      {!disabled && !item.checked && (
+        <div className="flex items-center justify-between bg-muted p-2 rounded-md">
+          <span className="text-sm font-medium">Kalan Süre:</span>
+          <span className="text-lg font-bold">{formattedTime}</span>
+        </div>
+      )}
+
+      {/* Main Row */}
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -235,14 +273,14 @@ function ChecklistItemRow({
 
       <Separator />
 
-      {/* Photo(s) */}
+      {/* Photos */}
       <div className="space-y-2">
         <Label htmlFor={`photo-${item.id}`}>Fotoğraf Yükle</Label>
         <Input
           id={`photo-${item.id}`}
           type="file"
           accept="image/*"
-          multiple // <--- allow multiple uploads
+          multiple
           onChange={handlePhotoUpload}
           disabled={disabled}
         />

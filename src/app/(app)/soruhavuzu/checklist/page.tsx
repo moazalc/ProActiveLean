@@ -30,15 +30,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Edit, Trash2, Plus, Filter } from "lucide-react";
+import { CheckCircle, Edit, Trash2, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+// Example users (hardcoded)
 const mockUsers = [
   { id: "1", name: "Ali" },
   { id: "2", name: "Ayşe" },
   { id: "3", name: "Mehmet" },
 ];
 
+// Predefined location options
 const locationOptions: LocationOption[] = [
   "Katlar",
   "Lobi",
@@ -60,25 +62,80 @@ export default function ChecklistHavuzuPage() {
     addItem,
   } = useChecklistStore();
 
+  // Filter states
   const [filterLocation, setFilterLocation] = useState<LocationOption | "">("");
   const [filterUser, setFilterUser] = useState("");
+
+  // Form states for new checklist creation
   const [newTitle, setNewTitle] = useState("");
   const [newLocation, setNewLocation] = useState<LocationOption | "">("");
   const [newDueDate, setNewDueDate] = useState("");
+  // NEW: time input for the due time
+  const [newDueTime, setNewDueTime] = useState("");
+
+  // Editing states
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editLocation, setEditLocation] = useState<LocationOption>("Katlar");
   const [editDueDate, setEditDueDate] = useState("");
+  // NEW: editing due time
+  const [editDueTime, setEditDueTime] = useState("");
+
+  // States for adding items
   const [addItemChecklistId, setAddItemChecklistId] = useState<string | null>(
     null
   );
   const [itemLabels, setItemLabels] = useState("");
 
+  // Filter logic
   const filteredChecklists = checklists.filter((cl) => {
     const matchLoc = filterLocation ? cl.location === filterLocation : true;
     const matchUser = filterUser ? cl.assignedUserId === filterUser : true;
     return matchLoc && matchUser;
   });
+
+  // Handler to create a new Checklist (Görev)
+  const handleCreateChecklist = () => {
+    if (!newTitle.trim() || !newLocation || !newDueDate || !newDueTime) {
+      toast({
+        title: "Eksik Bilgi",
+        description: "Lütfen tüm alanları doldurun.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createChecklist(
+      newTitle.trim(),
+      newLocation as LocationOption,
+      newDueDate,
+      newDueTime
+    );
+    // Reset form
+    setNewTitle("");
+    setNewLocation("");
+    setNewDueDate("");
+    setNewDueTime("");
+  };
+
+  // Handler to save edits
+  const handleSaveEdit = (checklistId: string) => {
+    if (!editTitle.trim() || !editDueDate || !editDueTime) {
+      toast({
+        title: "Eksik Bilgi",
+        description: "Lütfen tüm alanları doldurun.",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateChecklist(
+      checklistId,
+      editTitle.trim(),
+      editLocation,
+      editDueDate,
+      editDueTime
+    );
+    setEditingId(null);
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -91,13 +148,17 @@ export default function ChecklistHavuzuPage() {
           <CardTitle>Filtreler ve Yeni Checklist Oluştur</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Filters */}
           <div className="flex flex-wrap gap-4">
+            {/* Location Filter */}
             <div className="flex-1 min-w-[200px]">
               <Label htmlFor="location-filter">Lokasyon Filtre</Label>
               <Select
                 value={filterLocation}
                 onValueChange={(value) =>
-                  setFilterLocation(value as LocationOption | "")
+                  setFilterLocation(
+                    value === "all" ? "" : (value as LocationOption)
+                  )
                 }
               >
                 <SelectTrigger id="location-filter">
@@ -113,9 +174,16 @@ export default function ChecklistHavuzuPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* User Filter */}
             <div className="flex-1 min-w-[200px]">
               <Label htmlFor="user-filter">Kullanıcı Filtre</Label>
-              <Select value={filterUser} onValueChange={setFilterUser}>
+              <Select
+                value={filterUser}
+                onValueChange={(value) =>
+                  setFilterUser(value === "all" ? "" : value)
+                }
+              >
                 <SelectTrigger id="user-filter">
                   <SelectValue placeholder="Tümü" />
                 </SelectTrigger>
@@ -133,8 +201,10 @@ export default function ChecklistHavuzuPage() {
 
           <Separator />
 
+          {/* Form to create a new Checklist */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Title */}
               <div>
                 <Label htmlFor="new-title">Checklist Adı</Label>
                 <Input
@@ -143,6 +213,8 @@ export default function ChecklistHavuzuPage() {
                   onChange={(e) => setNewTitle(e.target.value)}
                 />
               </div>
+
+              {/* Location */}
               <div>
                 <Label htmlFor="new-location">Lokasyon</Label>
                 <Select
@@ -163,8 +235,10 @@ export default function ChecklistHavuzuPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Due Date */}
               <div>
-                <Label htmlFor="new-due-date">Due Date</Label>
+                <Label htmlFor="new-due-date">Son Teslim Tarihi</Label>
                 <Input
                   id="new-due-date"
                   type="date"
@@ -172,22 +246,27 @@ export default function ChecklistHavuzuPage() {
                   onChange={(e) => setNewDueDate(e.target.value)}
                 />
               </div>
+
+              {/* NEW: Due Time */}
+              <div>
+                <Label htmlFor="new-due-time">Son Teslim Zamanı</Label>
+                <Input
+                  id="new-due-time"
+                  type="time"
+                  value={newDueTime}
+                  onChange={(e) => setNewDueTime(e.target.value)}
+                />
+              </div>
             </div>
-            <Button
-              onClick={() => {
-                if (!newTitle.trim() || !newLocation || !newDueDate) return;
-                createChecklist(newTitle.trim(), newLocation, newDueDate);
-                setNewTitle("");
-                setNewLocation("");
-                setNewDueDate("");
-              }}
-            >
+
+            <Button onClick={handleCreateChecklist}>
               <Plus className="w-4 h-4 mr-2" /> Yeni Checklist Oluştur
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Display Filtered Checklists */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredChecklists.map((cl) => (
           <Card key={cl.id}>
@@ -197,6 +276,7 @@ export default function ChecklistHavuzuPage() {
             <CardContent>
               {editingId === cl.id ? (
                 <div className="space-y-4">
+                  {/* Edit Form */}
                   <div>
                     <Label htmlFor={`edit-title-${cl.id}`}>Başlık</Label>
                     <Input
@@ -234,19 +314,18 @@ export default function ChecklistHavuzuPage() {
                       onChange={(e) => setEditDueDate(e.target.value)}
                     />
                   </div>
+                  {/* NEW: Due Time in Edit Form */}
+                  <div>
+                    <Label htmlFor={`edit-due-time-${cl.id}`}>Due Time</Label>
+                    <Input
+                      id={`edit-due-time-${cl.id}`}
+                      type="time"
+                      value={editDueTime}
+                      onChange={(e) => setEditDueTime(e.target.value)}
+                    />
+                  </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        if (!editTitle.trim() || !editDueDate) return;
-                        updateChecklist(
-                          cl.id,
-                          editTitle.trim(),
-                          editLocation,
-                          editDueDate
-                        );
-                        setEditingId(null);
-                      }}
-                    >
+                    <Button onClick={() => handleSaveEdit(cl.id)}>
                       Kaydet
                     </Button>
                     <Button
@@ -259,25 +338,43 @@ export default function ChecklistHavuzuPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
+                  {/* Show details */}
                   <p>
                     <strong>Lokasyon:</strong> {cl.location}
                   </p>
                   <p>
-                    <strong>Due Date:</strong> {cl.dueDate}
+                    <strong>Son Süresi:</strong> {cl.dueDate}{" "}
+                    {cl.dueTime && `@ ${cl.dueTime}`}
                   </p>
+                  {/* NEW: Created On + Creator */}
+                  <p>
+                    <strong>Oluşturulma Tarihi:</strong>{" "}
+                    {cl.createdAt
+                      ? new Date(cl.createdAt).toLocaleString()
+                      : "N/A"}
+                  </p>
+                  <p>
+                    <strong>Oluşturan:</strong> {cl.creatorName || "Bilinmiyor"}
+                  </p>
+
+                  {/* Assigned user */}
                   {cl.assignedUserId && (
                     <p>
                       <strong>Atanan:</strong>{" "}
                       {mockUsers.find((u) => u.id === cl.assignedUserId)?.name}
                     </p>
                   )}
+
+                  {/* Assign user dropdown */}
                   <div>
                     <Label htmlFor={`assign-user-${cl.id}`}>
                       Çalışan Atama
                     </Label>
                     <Select
                       value={cl.assignedUserId || ""}
-                      onValueChange={(value) => assignUser(cl.id, value)}
+                      onValueChange={(value) =>
+                        assignUser(cl.id, value === "all" ? "" : value)
+                      }
                     >
                       <SelectTrigger id={`assign-user-${cl.id}`}>
                         <SelectValue placeholder="Seçiniz" />
@@ -292,6 +389,8 @@ export default function ChecklistHavuzuPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Items Section */}
                   <Button
                     variant="outline"
                     onClick={() => setAddItemChecklistId(cl.id)}
@@ -316,6 +415,7 @@ export default function ChecklistHavuzuPage() {
                   setEditTitle(cl.title);
                   setEditLocation(cl.location || "Katlar");
                   setEditDueDate(cl.dueDate || "");
+                  setEditDueTime(cl.dueTime || "");
                 }}
               >
                 <Edit className="w-4 h-4 mr-2" /> Düzenle
@@ -338,6 +438,7 @@ export default function ChecklistHavuzuPage() {
         ))}
       </div>
 
+      {/* Dialog to add new items */}
       <Dialog
         open={Boolean(addItemChecklistId)}
         onOpenChange={() => setAddItemChecklistId(null)}

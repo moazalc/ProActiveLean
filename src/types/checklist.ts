@@ -22,7 +22,10 @@ export interface Checklist {
   id: string;
   title: string;
   location?: LocationOption;
-  dueDate?: string; // ISO string or "YYYY-MM-DD" etc.
+  dueDate?: string;
+  dueTime?: string;
+  createdAt?: string;
+  creatorName?: string;
   assignedUserId?: string;
   items: ChecklistItem[];
   completed: boolean;

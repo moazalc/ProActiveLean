@@ -14,6 +14,7 @@ interface AuditState {
     auditorId: string,
     location: string,
     dueDate: string,
+    dueTime: string,
     questions: AuditQuestion[]
   ) => void;
 
@@ -57,17 +58,26 @@ export const useAuditStore = create(
   persist<AuditState>(
     (set, get) => ({
       audits: [],
-
-      createAudit: (checklistId, auditorId, location, dueDate, questions) => {
+      createAudit: (
+        checklistId,
+        auditorId,
+        location,
+        dueDate,
+        dueTime,
+        questions
+      ) => {
         const newAudit: Audit = {
           id: crypto.randomUUID(),
           checklistId,
           assignedAuditorId: auditorId,
           location,
           dueDate,
+          dueTime, // <--- NEW
           questions,
           completed: false,
-          createdBy: "Admin",
+          createdBy: "Admin", // or pull from your auth user
+          createdAt: new Date().toISOString(), // <--- NEW
+          score: undefined,
         };
         set((state) => ({
           audits: [...state.audits, newAudit],

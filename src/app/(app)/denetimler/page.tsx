@@ -72,6 +72,8 @@ export default function DenetimlerPage() {
   const [selectedAuditorId, setSelectedAuditorId] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [dueDate, setDueDate] = useState("");
+  // NEW: we add a dueTime field
+  const [dueTime, setDueTime] = useState("");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
@@ -124,7 +126,6 @@ export default function DenetimlerPage() {
       const totalQuestions = audit.questions.length;
       let answeredCount = 0;
       audit.questions.forEach((q) => {
-        // If we’re using "YES"|"NO"|"NA", then "answered" means q.answer != undefined
         if (q.answer) answeredCount++;
         if (q.subQuestions) {
           q.subQuestions.forEach((sq) => {
@@ -151,7 +152,14 @@ export default function DenetimlerPage() {
 
   /** CREATE AUDIT Handler */
   const handleCreateAudit = () => {
-    if (!selectedChecklistId || !selectedAuditorId || !dueDate) return;
+    if (!selectedChecklistId || !selectedAuditorId || !dueDate || !dueTime) {
+      toast({
+        title: "Eksik Bilgi",
+        description: "Lütfen tüm alanları doldurun (tarih & saat).",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // 1) Find the chosen checklist
     const checklist = checklists.find((cl) => cl.id === selectedChecklistId);
@@ -190,6 +198,7 @@ export default function DenetimlerPage() {
       selectedAuditorId,
       selectedLocation,
       dueDate,
+      dueTime, // pass the time
       allQuestions
     );
 
@@ -198,6 +207,7 @@ export default function DenetimlerPage() {
     setSelectedAuditorId("");
     setSelectedLocation("");
     setDueDate("");
+    setDueTime("");
     setCreateDialogOpen(false);
 
     toast({
@@ -380,6 +390,15 @@ export default function DenetimlerPage() {
                       onChange={(e) => setDueDate(e.target.value)}
                     />
                   </div>
+                  {/* NEW: Due Time */}
+                  <div className="space-y-2">
+                    <Label>Due Time</Label>
+                    <Input
+                      type="time"
+                      value={dueTime}
+                      onChange={(e) => setDueTime(e.target.value)}
+                    />
+                  </div>
                   <Button onClick={handleCreateAudit} className="w-full">
                     Oluştur
                   </Button>
@@ -397,7 +416,7 @@ export default function DenetimlerPage() {
           const today = new Date().toISOString().split("T")[0];
           const expired = !isCompleted && audit.dueDate < today;
 
-          // (B) We'll use the checklist title to name the audit, e.g. "Odalar Audit"
+          // We'll use the checklist title to name the audit
           const checklistTitle = getChecklistTitle(audit.checklistId);
           const auditorName = getAuditorNameById(audit.assignedAuditorId);
 
@@ -405,7 +424,7 @@ export default function DenetimlerPage() {
             <Card key={audit.id} className="shadow-lg flex flex-col">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
-                  {/* 2) Show "Odalar Audit" or similar */}
+                  {/* Title */}
                   <span className="text-sm font-semibold">
                     {checklistTitle} Audit
                   </span>
@@ -430,34 +449,42 @@ export default function DenetimlerPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {/* (1) Show Denetçi name + Sorumlu name */}
+                {/* Denetçi name */}
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
                   <span className="text-sm">
                     <strong>Denetçi:</strong> {auditorName}
                   </span>
                 </div>
+                {/* Creator name */}
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
                   <span className="text-sm">
                     <strong>Sorumlu:</strong> {audit.createdBy}
                   </span>
                 </div>
-
+                {/* Location */}
                 <div className="flex items-center space-x-2">
                   <MapPin className="w-4 h-4" />
                   <span className="text-sm">{audit.location}</span>
                 </div>
+                {/* Due date/time */}
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-sm">{audit.dueDate}</span>
+                  <span className="text-sm">
+                    {audit.dueDate} {audit.dueTime && `@ ${audit.dueTime}`}
+                  </span>
                 </div>
+                {/* Creation Date/Time */}
+                {audit.createdAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Oluşturma: {new Date(audit.createdAt).toLocaleString()}
+                  </p>
+                )}
 
                 <p className="text-sm font-medium">
-                  {/* Show truncated audit ID if desired */}
                   Audit ID: {audit.id.slice(0, 8)}
                 </p>
-
                 <p className="text-sm">
                   Durum:{" "}
                   {isCompleted
@@ -468,7 +495,7 @@ export default function DenetimlerPage() {
                 </p>
               </CardContent>
               <CardFooter className="flex-col sm:flex-row gap-2">
-                {/* (4) If completed -> “Denetimi Görüntüle” else “Denetim Başlat” */}
+                {/* If completed -> “Denetimi Görüntüle” else “Denetim Başlat” */}
                 {isCompleted ? (
                   <Button
                     variant="outline"
@@ -501,7 +528,7 @@ export default function DenetimlerPage() {
                   </Button>
                 )}
 
-                {/* (3) Delete with confirmation dialog */}
+                {/* Delete with confirmation */}
                 <Button
                   variant="destructive"
                   onClick={() => {
@@ -528,7 +555,7 @@ export default function DenetimlerPage() {
         </Card>
       )}
 
-      {/* (3) Confirmation Dialog for deleting an Audit */}
+      {/* Confirmation Dialog for deleting an Audit */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent>
           <DialogHeader>

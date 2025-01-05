@@ -1,5 +1,3 @@
-// src/store/useChecklistStore.ts
-
 "use client";
 
 import { create } from "zustand";
@@ -13,13 +11,15 @@ interface ChecklistState {
   createChecklist: (
     title: string,
     location: LocationOption,
-    dueDate: string
+    dueDate: string,
+    dueTime: string
   ) => void;
   updateChecklist: (
     checklistId: string,
     title: string,
     location: LocationOption,
-    dueDate: string
+    dueDate: string,
+    dueTime: string
   ) => void;
   deleteChecklist: (checklistId: string) => void;
   assignUser: (checklistId: string, userId: string) => void;
@@ -28,17 +28,12 @@ interface ChecklistState {
   // Worker actions
   toggleItem: (checklistId: string, itemId: string) => void;
   addComment: (checklistId: string, itemId: string, comment: string) => void;
-
-  /** Now appends a photo to the `photos` array. */
   addPhoto: (checklistId: string, itemId: string, photoBase64: string) => void;
-
-  /** Remove a photo from the `photos` array by index. */
   removePhoto: (
     checklistId: string,
     itemId: string,
     photoIndex: number
   ) => void;
-
   finishChecklist: (checklistId: string) => void;
 }
 
@@ -47,12 +42,19 @@ export const useChecklistStore = create(
     (set, get) => ({
       checklists: [],
 
-      createChecklist: (title, location, dueDate) => {
+      // Create a new checklist (Görev)
+      createChecklist: (title, location, dueDate, dueTime) => {
         const newChecklist: Checklist = {
           id: crypto.randomUUID(),
           title,
           location,
           dueDate,
+          dueTime,
+          // Record creation time as an ISO string or human-readable.
+          createdAt: new Date().toISOString(),
+          // Hardcode creator for now; replace with real user info if needed
+          creatorName: "Admin",
+
           assignedUserId: undefined,
           items: [],
           completed: false,
@@ -62,10 +64,20 @@ export const useChecklistStore = create(
         }));
       },
 
-      updateChecklist: (checklistId, title, location, dueDate) => {
+      // Update an existing checklist
+      updateChecklist: (checklistId, title, location, dueDate, dueTime) => {
         set((state) => ({
           checklists: state.checklists.map((cl) =>
-            cl.id === checklistId ? { ...cl, title, location, dueDate } : cl
+            cl.id === checklistId
+              ? {
+                  ...cl,
+                  title,
+                  location,
+                  dueDate,
+                  dueTime,
+                  // we do NOT overwrite createdAt or creatorName here
+                }
+              : cl
           ),
         }));
       },
@@ -134,17 +146,14 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Append the new photo to the `photos` array. */
       addPhoto: (checklistId, itemId, photoBase64) => {
         set((state) => ({
           checklists: state.checklists.map((cl) => {
             if (cl.id !== checklistId) return cl;
-
             return {
               ...cl,
               items: cl.items.map((item) => {
                 if (item.id !== itemId) return item;
-
                 const newPhotos = item.photos ? [...item.photos] : [];
                 newPhotos.push(photoBase64);
                 return { ...item, photos: newPhotos };
@@ -154,17 +163,14 @@ export const useChecklistStore = create(
         }));
       },
 
-      /** Remove a single photo by index from the `photos` array. */
       removePhoto: (checklistId, itemId, photoIndex) => {
         set((state) => ({
           checklists: state.checklists.map((cl) => {
             if (cl.id !== checklistId) return cl;
-
             return {
               ...cl,
               items: cl.items.map((item) => {
                 if (item.id !== itemId || !item.photos) return item;
-
                 const updatedPhotos = [...item.photos];
                 updatedPhotos.splice(photoIndex, 1);
                 return { ...item, photos: updatedPhotos };

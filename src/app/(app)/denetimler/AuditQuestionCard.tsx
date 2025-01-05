@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuditStore } from "@/store/useAuditStore";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -34,12 +34,44 @@ export default function AuditQuestionCard({
 
   const { toast } = useToast();
   const audit = audits.find((a) => a.id === auditId);
+
+  // Current question index & timer
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // ---- TIMER LOGIC ----
+  // 10 minutes in seconds = 600
+  const [timeLeft, setTimeLeft] = useState(600);
+
+  // Reset the timer whenever currentQuestionIndex changes
+  useEffect(() => {
+    setTimeLeft(600);
+  }, [currentQuestionIndex]);
+
+  // Decrement timeLeft by 1 every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // If the audit is completed, we stop the timer
+      if (audit?.completed) return;
+
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [audit?.completed]);
+
+  // Format the timer for display
+  const absTime = Math.abs(timeLeft);
+  const minutes = Math.floor(absTime / 60);
+  const seconds = absTime % 60;
+  const sign = timeLeft < 0 ? "-" : "";
+  const formattedTime = `${sign}${String(minutes).padStart(2, "0")}:${String(
+    seconds
+  ).padStart(2, "0")}`;
 
   if (!audit) return null;
 
   const currentQuestion = audit.questions[currentQuestionIndex];
-  const isAuditCompleted = audit.completed; // <-- We'll use this flag to disable editing
+  const isAuditCompleted = audit.completed;
 
   // Handler for main question (Yes/No/NA)
   const handleMarkAnswer = (answer: "YES" | "NO" | "NA") => {
@@ -55,6 +87,7 @@ export default function AuditQuestionCard({
     }
   };
 
+  // Save the existing comment text
   const handleSaveComment = () => {
     if (!isAuditCompleted) {
       addCommentToQuestion(
@@ -70,6 +103,7 @@ export default function AuditQuestionCard({
     }
   };
 
+  // Photo upload
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isAuditCompleted) return; // No-op if audit is completed
 
@@ -128,6 +162,14 @@ export default function AuditQuestionCard({
 
         <CardContent className="flex-grow">
           <div className="space-y-4 max-w-3xl mx-auto py-4">
+            {/* Timer Display */}
+            {!isAuditCompleted && (
+              <div className="flex items-center justify-between bg-muted p-2 rounded-md">
+                <span className="text-sm font-medium">Kalan Süre:</span>
+                <span className="text-lg font-bold">{formattedTime}</span>
+              </div>
+            )}
+
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold">Kategori:</span>{" "}
               {currentQuestion.category}
@@ -145,7 +187,7 @@ export default function AuditQuestionCard({
                     currentQuestion.answer === "YES" ? "default" : "outline"
                   }
                   onClick={() => handleMarkAnswer("YES")}
-                  disabled={isAuditCompleted} // disable in read-only
+                  disabled={isAuditCompleted}
                 >
                   Evet
                 </Button>
@@ -172,7 +214,7 @@ export default function AuditQuestionCard({
               </div>
             </div>
 
-            {/* Sub-questions (if any) - each with Yes/No/NA */}
+            {/* Sub-questions (if any) */}
             {currentQuestion.subQuestions &&
               currentQuestion.subQuestions.length > 0 && (
                 <div className="ml-4 space-y-3">
@@ -222,7 +264,7 @@ export default function AuditQuestionCard({
                     e.target.value
                   )
                 }
-                readOnly={isAuditCompleted} // read-only if completed
+                readOnly={isAuditCompleted}
               />
               <Button
                 onClick={handleSaveComment}
@@ -244,7 +286,6 @@ export default function AuditQuestionCard({
                 className="w-full"
                 disabled={isAuditCompleted}
               />
-              {/* List of photos (if any) */}
               {currentQuestion.photos && currentQuestion.photos.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {currentQuestion.photos.map((photo, index) => (
@@ -254,7 +295,6 @@ export default function AuditQuestionCard({
                         alt={`Audit Photo ${index}`}
                         className="max-h-32 rounded-md"
                       />
-                      {/* Hide remove photo button if completed (read-only) */}
                       {!isAuditCompleted && (
                         <button
                           type="button"

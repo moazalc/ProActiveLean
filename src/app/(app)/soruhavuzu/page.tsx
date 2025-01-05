@@ -240,7 +240,7 @@ export default function SoruHavuzuPage() {
 
             {/* Multi-Select for Locations */}
             <div className="flex-1">
-              <Label>Lokasyon(lar)</Label>
+              <Label>Lokasyon</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between">
