@@ -30,4 +30,5 @@ export interface Checklist {
   items: ChecklistItem[];
   completed: boolean;
   score?: number;
+  bulguId?: string;
 }

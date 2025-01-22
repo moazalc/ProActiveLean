@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Checklist, ChecklistItem, LocationOption } from "@/types/checklist";
+import { useFindingStore } from "@/store/useFindingStore";
+import type { Finding } from "@/store/useFindingStore";
 
 interface ChecklistState {
   checklists: Checklist[];
@@ -35,6 +37,16 @@ interface ChecklistState {
     photoIndex: number
   ) => void;
   finishChecklist: (checklistId: string) => void;
+
+  // Create a Görev referencing a Bulgu, assigned immediately
+  createGorevFromBulgu: (
+    bulguId: string,
+    title: string,
+    location: LocationOption,
+    dueDate: string,
+    dueTime: string,
+    assignedUserId: string
+  ) => void;
 }
 
 export const useChecklistStore = create(
@@ -50,11 +62,8 @@ export const useChecklistStore = create(
           location,
           dueDate,
           dueTime,
-          // Record creation time as an ISO string or human-readable.
           createdAt: new Date().toISOString(),
-          // Hardcode creator for now; replace with real user info if needed
           creatorName: "Admin",
-
           assignedUserId: undefined,
           items: [],
           completed: false,
@@ -64,19 +73,11 @@ export const useChecklistStore = create(
         }));
       },
 
-      // Update an existing checklist
       updateChecklist: (checklistId, title, location, dueDate, dueTime) => {
         set((state) => ({
           checklists: state.checklists.map((cl) =>
             cl.id === checklistId
-              ? {
-                  ...cl,
-                  title,
-                  location,
-                  dueDate,
-                  dueTime,
-                  // we do NOT overwrite createdAt or creatorName here
-                }
+              ? { ...cl, title, location, dueDate, dueTime }
               : cl
           ),
         }));
@@ -192,6 +193,49 @@ export const useChecklistStore = create(
             return cl;
           });
           return { checklists: updated };
+        });
+      },
+
+      // Create a Görev from a Bulgu, assigned to the chosen user
+      createGorevFromBulgu: (
+        bulguId,
+        title,
+        location,
+        dueDate,
+        dueTime,
+        assignedUserId
+      ) => {
+        const { findings, updateFinding } = useFindingStore.getState();
+        const bulgu = findings.find((f) => f.id === bulguId);
+        if (!bulgu) {
+          console.warn("Bulgu not found, cannot create Görev");
+          return;
+        }
+
+        const newChecklistId = crypto.randomUUID();
+        const newChecklist: Checklist = {
+          id: newChecklistId,
+          title,
+          location,
+          dueDate,
+          dueTime,
+          createdAt: new Date().toISOString(),
+          creatorName: "Admin",
+          assignedUserId, // assigned immediately
+          items: [],
+          completed: false,
+          bulguId: bulguId as any,
+        };
+
+        // add to store
+        set((state) => ({
+          checklists: [...state.checklists, newChecklist],
+        }));
+
+        // update the Bulgu to reflect fixTaskId
+        updateFinding(bulguId, {
+          fixTaskId: newChecklistId,
+          status: "Onay bekleyen",
         });
       },
     }),

@@ -1,314 +1,322 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useChecklistStore } from "@/store/useChecklistStore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
+  CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { CheckCircle, Clock, MapPin, Calendar, Star, X } from "lucide-react";
+import {
+  CheckCircle,
+  Loader,
+  CalendarX2,
+  Clock,
+  MapPin,
+  Calendar,
+  Star,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import GorevWizard from "./GorevWizard";
 
-// Suppose the worker is Ayşe with ID "2"
+/**
+ * Example location options, if you want to filter by location.
+ */
+const locationOptions = [
+  "all",
+  "Katlar",
+  "Lobi",
+  "Restoran",
+  "Bahçe",
+  "Bolum",
+  "Havuz",
+  "Toplantı odalar",
+  "Tuvaletler",
+];
+
+/**
+ * For status filter we can have:
+ * - "all" => show all
+ * - "completed" => Tamamlandı
+ * - "expired" => Süresi Geçmiş
+ * - "notstarted" => Başlanmamış
+ *
+ * We'll apply these in a useMemo if you like.
+ */
+
+/** Suppose the current worker is Ayşe with ID "2". */
 const currentWorkerId = "2";
 
 export default function MyChecklistsPage() {
-  const {
-    checklists,
-    toggleItem,
-    addComment,
-    addPhoto,
-    removePhoto,
-    finishChecklist,
-  } = useChecklistStore();
+  const { checklists } = useChecklistStore();
   const { toast } = useToast();
 
-  // Filter for only checklists assigned to this worker
+  // Filter for checklists assigned to this worker
   const workerChecklists = checklists.filter(
     (cl) => cl.assignedUserId === currentWorkerId
   );
 
-  const handleFinishChecklist = (id: string) => {
-    finishChecklist(id);
-    toast({
-      title: "Checklist Tamamlandı",
-      description: "Checklist başarıyla bitirildi.",
-      duration: 3000,
-    });
+  // Additional filter states
+  const [monthYearFilter, setMonthYearFilter] = useState(""); // e.g. "2025-04"
+  const [statusFilter, setStatusFilter] = useState("all"); // e.g. "completed", "expired", "notstarted"
+  const [locationFilter, setLocationFilter] = useState("all");
+
+  // For the "Start" confirm dialog
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [checklistToStart, setChecklistToStart] = useState<string | null>(null);
+
+  // For opening the Wizard
+  const [openWizardFor, setOpenWizardFor] = useState<string | null>(null);
+
+  // Helper to see if a checklist is "expired"
+  const isExpired = (dueDate?: string, completed?: boolean) => {
+    if (!dueDate || completed) return false;
+    const today = new Date().toISOString().split("T")[0];
+    return dueDate < today;
   };
+
+  // Count how many items are checked
+  const getCheckedCount = (cl: any) =>
+    cl.items.filter((i: any) => i.checked).length;
+
+  // "Başlanmamış" => 0 items checked, not completed
+  const isNotStarted = (cl: any) => {
+    return !cl.completed && getCheckedCount(cl) === 0;
+  };
+
+  // Filter logic
+  const filteredChecklists = useMemo(() => {
+    let temp = [...workerChecklists];
+
+    // Filter by location
+    if (locationFilter !== "all") {
+      temp = temp.filter((cl) => cl.location === locationFilter);
+    }
+
+    // Filter by monthYear => e.g. "2025-04"
+    if (monthYearFilter) {
+      temp = temp.filter((cl) => {
+        if (!cl.dueDate) return false;
+        return cl.dueDate.startsWith(monthYearFilter);
+      });
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      temp = temp.filter((cl) => {
+        const completed = cl.completed;
+        const expired = isExpired(cl.dueDate, cl.completed);
+        const notStarted = isNotStarted(cl);
+        switch (statusFilter) {
+          case "completed":
+            return completed;
+          case "expired":
+            return expired;
+          case "notstarted":
+            return notStarted;
+          default:
+            return true;
+        }
+      });
+    }
+
+    return temp;
+  }, [workerChecklists, locationFilter, monthYearFilter, statusFilter]);
 
   return (
     <div className="container mx-auto p-4 space-y-6">
       <h1 className="text-3xl font-bold text-primary">Benim Görevlerim</h1>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {workerChecklists.map((cl) => (
-          <Card key={cl.id} className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>{cl.title}</span>
-                <Badge variant={cl.completed ? "default" : "secondary"}>
-                  {cl.completed ? "Tamamlandı" : "Devam Ediyor"}
-                </Badge>
-              </CardTitle>
-              <div className="flex flex-col space-y-1 text-sm text-muted-foreground">
-                <div className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  <span>{cl.location}</span>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {/* Show due date + time if available */}
-                  <span>
-                    {cl.dueDate} {cl.dueTime && `@ ${cl.dueTime}`}
-                  </span>
-                </div>
-                {cl.score !== undefined && (
-                  <div className="flex items-center">
-                    <Star className="w-4 h-4 mr-2" />
-                    <span>Puan: {cl.score}</span>
-                  </div>
-                )}
-              </div>
-            </CardHeader>
+      {/* FILTER SECTION */}
+      <div className="flex flex-wrap gap-4 items-end mb-4">
+        {/* Month / Year Filter */}
+        <div>
+          <label className="block mb-1 text-sm font-medium text-muted-foreground">
+            Ay / Yıl
+          </label>
+          <input
+            type="month"
+            value={monthYearFilter}
+            onChange={(e) => setMonthYearFilter(e.target.value)}
+            className="border rounded px-2 py-1"
+          />
+        </div>
 
-            <CardContent>
-              <ScrollArea className="h-[300px] pr-4">
-                <div className="space-y-4">
-                  {cl.items.map((item) => (
-                    <ChecklistItemRow
-                      key={item.id}
-                      checklistId={cl.id}
-                      item={item}
-                      disabled={cl.completed} // entire checklist completed -> disable
-                      toggleItem={toggleItem}
-                      addComment={addComment}
-                      addPhoto={addPhoto}
-                      removePhoto={removePhoto}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
+        {/* Status Filter => "all", "completed", "expired", "notstarted" */}
+        <div>
+          <label className="block mb-1 text-sm font-medium text-muted-foreground">
+            Durum
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
+            <option value="all">Tümü</option>
+            <option value="completed">Tamamlandı</option>
+            <option value="expired">Süresi Geçmiş</option>
+            <option value="notstarted">Başlanmamış</option>
+          </select>
+        </div>
 
-            <CardFooter>
-              {!cl.completed && (
-                <Button
-                  className="w-full"
-                  onClick={() => handleFinishChecklist(cl.id)}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Checklisti Bitir
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
+        {/* Location Filter */}
+        <div>
+          <label className="block mb-1 text-sm font-medium text-muted-foreground">
+            Lokasyon
+          </label>
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
+            {locationOptions.map((loc) => (
+              <option key={loc} value={loc}>
+                {loc === "all" ? "Tümü" : loc}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {workerChecklists.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-6">
-            <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-            <p className="text-lg font-medium">
-              Şu anda atanan bir checklist yok.
-            </p>
-          </CardContent>
-        </Card>
+      {/* LIST of FILTERED Checklists */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {filteredChecklists.map((cl) => {
+          const completed = cl.completed;
+          const expired = isExpired(cl.dueDate, cl.completed);
+
+          return (
+            <Card key={cl.id} className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>{cl.title}</span>
+                  {completed ? (
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="text-green-500" />
+                      <span className="text-green-500">Tamamlandı</span>
+                    </div>
+                  ) : expired ? (
+                    <div className="flex items-center space-x-2">
+                      <CalendarX2 className="text-red-500" />
+                      <span className="text-red-500">Süresi Geçmiş</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Loader className="text-yellow-500" />
+                      <span className="text-yellow-500">Devam Ediyor</span>
+                    </div>
+                  )}
+                </CardTitle>
+                <div className="flex flex-col space-y-1 text-sm text-muted-foreground">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    <span>{cl.location}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <span>
+                      {cl.dueDate} {cl.dueTime && `@ ${cl.dueTime}`}
+                    </span>
+                  </div>
+                  {typeof cl.score !== "undefined" && (
+                    <div className="flex items-center">
+                      <Star className="w-4 h-4 mr-2" />
+                      <span>Puan: {cl.score}</span>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <ScrollArea className="h-[80px] pr-4">
+                  <p className="text-sm">
+                    Bu checklist {cl.items.length} maddeden oluşuyor.
+                  </p>
+                </ScrollArea>
+              </CardContent>
+
+              <CardFooter>
+                {/* If not completed & not expired => "Göreve Başla" */}
+                {!completed && !expired ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setChecklistToStart(cl.id);
+                      setShowStartConfirm(true);
+                    }}
+                  >
+                    Göreve Başla
+                  </Button>
+                ) : completed ? (
+                  <span className="text-sm text-muted-foreground">
+                    Görev Tamamlandı
+                  </span>
+                ) : (
+                  <span className="text-sm text-red-500">
+                    Görev Süresi Geçmiş
+                  </span>
+                )}
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
+
+      {filteredChecklists.length === 0 && (
+        <div className="flex flex-col items-center gap-2 py-6">
+          <Clock className="w-12 h-12 text-muted-foreground" />
+          <p className="text-lg font-medium">Görev bulunmuyor.</p>
+        </div>
+      )}
+
+      {/* Confirmation Dialog to start a task */}
+      <Dialog open={showStartConfirm} onOpenChange={setShowStartConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Göreve Başla</DialogTitle>
+          </DialogHeader>
+          <p>Bu göreve şimdi başlamak istediğinize emin misiniz?</p>
+          <DialogFooter className="justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowStartConfirm(false)}
+            >
+              Vazgeç
+            </Button>
+            {checklistToStart && (
+              <Button
+                onClick={() => {
+                  setOpenWizardFor(checklistToStart);
+                  setShowStartConfirm(false);
+                }}
+              >
+                Başla
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Wizard overlay for an individual checklist */}
+      {openWizardFor && (
+        <GorevWizard
+          checklistId={openWizardFor}
+          onClose={() => setOpenWizardFor(null)}
+        />
       )}
 
       <Toaster />
-    </div>
-  );
-}
-
-/** Represents a single item row with its 10-minute timer. */
-function ChecklistItemRow({
-  checklistId,
-  item,
-  disabled,
-  toggleItem,
-  addComment,
-  addPhoto,
-  removePhoto,
-}: {
-  checklistId: string;
-  item: {
-    id: string;
-    label: string;
-    checked: boolean;
-    comment?: string;
-    photos?: string[];
-  };
-  disabled: boolean;
-  toggleItem: (checklistId: string, itemId: string) => void;
-  addComment: (checklistId: string, itemId: string, comment: string) => void;
-  addPhoto: (checklistId: string, itemId: string, photo: string) => void;
-  removePhoto: (
-    checklistId: string,
-    itemId: string,
-    photoIndex: number
-  ) => void;
-}) {
-  const [localComment, setLocalComment] = useState(item.comment || "");
-  const { toast } = useToast();
-
-  // ---- PER-ITEM TIMER LOGIC ----
-  // 10 minutes = 600 seconds
-  const [timeLeft, setTimeLeft] = useState(600);
-
-  // Decrement timer every second, unless item is disabled or checked
-  useEffect(() => {
-    const timer = setInterval(() => {
-      // If the entire checklist is disabled or the item is checked, freeze the timer
-      if (disabled || item.checked) return;
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [disabled, item.checked]);
-
-  // Format the timer
-  const absTime = Math.abs(timeLeft);
-  const minutes = Math.floor(absTime / 60);
-  const seconds = absTime % 60;
-  const sign = timeLeft < 0 ? "-" : "";
-  const formattedTime = `${sign}${String(minutes).padStart(2, "0")}:${String(
-    seconds
-  ).padStart(2, "0")}`;
-
-  // For uploading multiple image files as base64
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    Array.from(e.target.files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const base64 = ev.target?.result;
-        if (typeof base64 === "string") {
-          addPhoto(checklistId, item.id, base64);
-          toast({
-            title: "Fotoğraf Yüklendi",
-            description: "Fotoğraf başarıyla yüklendi.",
-            duration: 3000,
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleRemovePhoto = (index: number) => {
-    removePhoto(checklistId, item.id, index);
-    toast({
-      title: "Fotoğraf Silindi",
-      description: "Fotoğraf kaldırıldı.",
-      duration: 3000,
-    });
-  };
-
-  return (
-    <div className="space-y-4 p-4 bg-secondary rounded-lg">
-      {/* Timer Display (freeze if item.checked or disabled) */}
-      {!disabled && !item.checked && (
-        <div className="flex items-center justify-between bg-muted p-2 rounded-md">
-          <span className="text-sm font-medium">Kalan Süre:</span>
-          <span className="text-lg font-bold">{formattedTime}</span>
-        </div>
-      )}
-
-      {/* Main Row */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={item.checked}
-          onChange={() => toggleItem(checklistId, item.id)}
-          disabled={disabled}
-          className="w-5 h-5"
-        />
-        <span
-          className={item.checked ? "line-through text-muted-foreground" : ""}
-        >
-          {item.label}
-        </span>
-      </div>
-
-      <Separator />
-
-      {/* Comment */}
-      <div className="space-y-2">
-        <Label htmlFor={`comment-${item.id}`}>Yorum</Label>
-        <div className="flex items-end gap-2">
-          <Input
-            id={`comment-${item.id}`}
-            value={localComment}
-            onChange={(e) => setLocalComment(e.target.value)}
-            disabled={disabled}
-          />
-          <Button
-            onClick={() => {
-              addComment(checklistId, item.id, localComment);
-              toast({
-                title: "Yorum Eklendi",
-                description: "Yorum başarıyla kaydedildi.",
-                duration: 3000,
-              });
-            }}
-            disabled={disabled}
-            size="sm"
-          >
-            Kaydet
-          </Button>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Photos */}
-      <div className="space-y-2">
-        <Label htmlFor={`photo-${item.id}`}>Fotoğraf Yükle</Label>
-        <Input
-          id={`photo-${item.id}`}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handlePhotoUpload}
-          disabled={disabled}
-        />
-
-        {/* Render all photos in a grid/list */}
-        {item.photos && item.photos.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {item.photos.map((photo, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={photo}
-                  alt={`Fotoğraf ${index}`}
-                  className="max-h-32 rounded-md"
-                />
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(index)}
-                    className="absolute top-1 right-1 text-red-500 bg-white rounded-full p-1 shadow"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

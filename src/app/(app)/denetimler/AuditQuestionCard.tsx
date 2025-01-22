@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuditStore } from "@/store/useAuditStore";
+import { useFindingStore } from "@/store/useFindingStore"; // <-- import
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,33 +34,31 @@ export default function AuditQuestionCard({
   } = useAuditStore();
 
   const { toast } = useToast();
+  const findingStore = useFindingStore.getState(); // or useFindingStore()
+
   const audit = audits.find((a) => a.id === auditId);
 
   // Current question index & timer
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  // ---- TIMER LOGIC ----
-  // 10 minutes in seconds = 600
+  // 10 minutes timer
   const [timeLeft, setTimeLeft] = useState(600);
 
-  // Reset the timer whenever currentQuestionIndex changes
+  // Reset timer on question change
   useEffect(() => {
     setTimeLeft(600);
   }, [currentQuestionIndex]);
 
-  // Decrement timeLeft by 1 every second
+  // Decrement timer if not completed
   useEffect(() => {
     const timer = setInterval(() => {
-      // If the audit is completed, we stop the timer
       if (audit?.completed) return;
-
       setTimeLeft((prev) => prev - 1);
     }, 1000);
-
     return () => clearInterval(timer);
   }, [audit?.completed]);
 
-  // Format the timer for display
+  // Format timer
   const absTime = Math.abs(timeLeft);
   const minutes = Math.floor(absTime / 60);
   const seconds = absTime % 60;
@@ -73,21 +72,21 @@ export default function AuditQuestionCard({
   const currentQuestion = audit.questions[currentQuestionIndex];
   const isAuditCompleted = audit.completed;
 
-  // Handler for main question (Yes/No/NA)
+  // Mark main question answer
   const handleMarkAnswer = (answer: "YES" | "NO" | "NA") => {
     if (!isAuditCompleted) {
       markAnswer(auditId, currentQuestion.id, answer);
     }
   };
 
-  // Handler for sub-question (Yes/No/NA)
+  // Mark sub-question answer
   const handleSubQCheck = (subQId: string, answer: "YES" | "NO" | "NA") => {
     if (!isAuditCompleted) {
       markSubQuestionAnswer(auditId, currentQuestion.id, subQId, answer);
     }
   };
 
-  // Save the existing comment text
+  // Save comment
   const handleSaveComment = () => {
     if (!isAuditCompleted) {
       addCommentToQuestion(
@@ -105,8 +104,7 @@ export default function AuditQuestionCard({
 
   // Photo upload
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isAuditCompleted) return; // No-op if audit is completed
-
+    if (isAuditCompleted) return;
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -127,6 +125,7 @@ export default function AuditQuestionCard({
     });
   };
 
+  // Remove photo
   const handleRemovePhoto = (photoIndex: number) => {
     if (!isAuditCompleted) {
       removePhotoFromQuestion(auditId, currentQuestion.id, photoIndex);
@@ -138,7 +137,7 @@ export default function AuditQuestionCard({
     }
   };
 
-  // If we are on the last question, show "Denetimi Bitir" button (only if not completed)
+  // Next/previous question logic
   const isLastQuestion = currentQuestionIndex === audit.questions.length - 1;
   const handleFinishAudit = () => {
     finishAudit(auditId);
@@ -153,6 +152,7 @@ export default function AuditQuestionCard({
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-auto">
       <Card className="min-h-screen flex flex-col border-0 rounded-none">
+        {/* Header */}
         <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white z-10">
           <CardTitle>Denetim Soruları</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -160,9 +160,10 @@ export default function AuditQuestionCard({
           </Button>
         </CardHeader>
 
+        {/* Content */}
         <CardContent className="flex-grow">
           <div className="space-y-4 max-w-3xl mx-auto py-4">
-            {/* Timer Display */}
+            {/* Timer */}
             {!isAuditCompleted && (
               <div className="flex items-center justify-between bg-muted p-2 rounded-md">
                 <span className="text-sm font-medium">Kalan Süre:</span>
@@ -170,6 +171,7 @@ export default function AuditQuestionCard({
               </div>
             )}
 
+            {/* Info */}
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold">Kategori:</span>{" "}
               {currentQuestion.category}
@@ -177,11 +179,10 @@ export default function AuditQuestionCard({
               {currentQuestion.itemLabel}
             </div>
 
-            {/* Main Question - Yes/No/NA Buttons */}
+            {/* Main Q yes/no/na */}
             <div className="space-y-2">
               <Label className="text-sm">{currentQuestion.text}</Label>
               <div className="flex space-x-2">
-                {/* YES button */}
                 <Button
                   variant={
                     currentQuestion.answer === "YES" ? "default" : "outline"
@@ -191,7 +192,6 @@ export default function AuditQuestionCard({
                 >
                   Evet
                 </Button>
-                {/* NO button */}
                 <Button
                   variant={
                     currentQuestion.answer === "NO" ? "default" : "outline"
@@ -201,7 +201,6 @@ export default function AuditQuestionCard({
                 >
                   Hayır
                 </Button>
-                {/* N/A button */}
                 <Button
                   variant={
                     currentQuestion.answer === "NA" ? "default" : "outline"
@@ -214,42 +213,39 @@ export default function AuditQuestionCard({
               </div>
             </div>
 
-            {/* Sub-questions (if any) */}
-            {currentQuestion.subQuestions &&
-              currentQuestion.subQuestions.length > 0 && (
-                <div className="ml-4 space-y-3">
-                  {currentQuestion.subQuestions.map((subQ) => (
-                    <div key={subQ.id}>
-                      <Label className="text-sm">{subQ.text}</Label>
-                      <div className="flex space-x-2 mt-1">
-                        <Button
-                          variant={
-                            subQ.answer === "YES" ? "default" : "outline"
-                          }
-                          onClick={() => handleSubQCheck(subQ.id, "YES")}
-                          disabled={isAuditCompleted}
-                        >
-                          Evet
-                        </Button>
-                        <Button
-                          variant={subQ.answer === "NO" ? "default" : "outline"}
-                          onClick={() => handleSubQCheck(subQ.id, "NO")}
-                          disabled={isAuditCompleted}
-                        >
-                          Hayır
-                        </Button>
-                        <Button
-                          variant={subQ.answer === "NA" ? "default" : "outline"}
-                          onClick={() => handleSubQCheck(subQ.id, "NA")}
-                          disabled={isAuditCompleted}
-                        >
-                          N/A
-                        </Button>
-                      </div>
+            {/* Sub-questions */}
+            {currentQuestion.subQuestions?.length ? (
+              <div className="ml-4 space-y-3">
+                {currentQuestion.subQuestions.map((subQ) => (
+                  <div key={subQ.id}>
+                    <Label className="text-sm">{subQ.text}</Label>
+                    <div className="flex space-x-2 mt-1">
+                      <Button
+                        variant={subQ.answer === "YES" ? "default" : "outline"}
+                        onClick={() => handleSubQCheck(subQ.id, "YES")}
+                        disabled={isAuditCompleted}
+                      >
+                        Evet
+                      </Button>
+                      <Button
+                        variant={subQ.answer === "NO" ? "default" : "outline"}
+                        onClick={() => handleSubQCheck(subQ.id, "NO")}
+                        disabled={isAuditCompleted}
+                      >
+                        Hayır
+                      </Button>
+                      <Button
+                        variant={subQ.answer === "NA" ? "default" : "outline"}
+                        onClick={() => handleSubQCheck(subQ.id, "NA")}
+                        disabled={isAuditCompleted}
+                      >
+                        N/A
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {/* Comment */}
             <div className="space-y-2">
@@ -286,7 +282,7 @@ export default function AuditQuestionCard({
                 className="w-full"
                 disabled={isAuditCompleted}
               />
-              {currentQuestion.photos && currentQuestion.photos.length > 0 && (
+              {currentQuestion.photos?.length ? (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {currentQuestion.photos.map((photo, index) => (
                     <div key={index} className="relative">
@@ -307,11 +303,19 @@ export default function AuditQuestionCard({
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
+
+            {/* Button to create a Bulgu for the Auditor's found issue */}
+            {!isAuditCompleted && (
+              <Button variant="outline" onClick={() => handleCreateBulgu()}>
+                Bulgu Oluştur
+              </Button>
+            )}
           </div>
         </CardContent>
 
+        {/* Footer */}
         <CardFooter className="justify-between items-center sticky bottom-0 bg-white z-10">
           {/* Previous Question */}
           <Button
@@ -323,12 +327,12 @@ export default function AuditQuestionCard({
             Önceki
           </Button>
 
-          {/* Progress: x / total */}
+          {/* Progress */}
           <div className="text-sm text-muted-foreground">
             {currentQuestionIndex + 1} / {audit.questions.length}
           </div>
 
-          {/* Next Question or Finish Audit */}
+          {/* Next or Finish */}
           {isLastQuestion && !isAuditCompleted ? (
             <Button variant="destructive" onClick={handleFinishAudit}>
               Denetimi Bitir
@@ -348,4 +352,34 @@ export default function AuditQuestionCard({
       </Card>
     </div>
   );
+
+  /** Auditors use "Denetim" type for new findings. */
+  function handleCreateBulgu() {
+    const photos = currentQuestion.photos || [];
+    const comment = currentQuestion.comment || "";
+
+    if (!comment && photos.length === 0) {
+      toast({
+        title: "Bulgu Oluşturulamadı",
+        description: "Lütfen fotoğraf veya yorum ekleyin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    findingStore.addFinding({
+      type: "Denetim",
+      status: "Açık",
+      location: audit?.location || "", // from the audit
+      createdAt: new Date().toISOString(),
+      comment,
+      photos,
+    });
+
+    toast({
+      title: "Bulgu Oluşturuldu",
+      description:
+        "Bu denetim maddesinde tespit edilen sorun Bulgular sayfasına eklendi.",
+    });
+  }
 }
