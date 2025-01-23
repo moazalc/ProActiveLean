@@ -65,22 +65,8 @@ const data = {
 
     {
       title: "Bulgular",
-      url: "#",
+      url: "/bulgular",
       icon: FileSearch,
-      items: [
-        {
-          title: "Bulgular",
-          url: "/bulgular",
-        },
-        {
-          title: "Onay Bekleyen Bulgular",
-          url: "/bulgular/onayBekleyenBulgular",
-        },
-        {
-          title: "Onaylanmış Bulgular",
-          url: "/bulgular/onaylanmisBulgular",
-        },
-      ],
     },
 
     {
