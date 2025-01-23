@@ -50,7 +50,6 @@ import {
 // 1) Constants and Helpers
 // -----------------------------------------------------------------------------
 
-// Location filter options
 const locationOptions = [
   "all",
   "Katlar",
@@ -63,7 +62,6 @@ const locationOptions = [
   "Tuvaletler",
 ];
 
-// Status filter options
 const statusOptions: FindingStatus[] = [
   "Açık",
   "Tarihi Geçmiş",
@@ -71,13 +69,11 @@ const statusOptions: FindingStatus[] = [
   "Tamamlandı",
 ];
 
-/** Extract YYYY-MM-DD from an ISO string. */
 function isoToDateOnly(isoStr?: string) {
   if (!isoStr) return "";
   return isoStr.split("T")[0];
 }
 
-/** Returns an icon/color for each FindingStatus. */
 function getStatusDisplay(status: FindingStatus) {
   switch (status) {
     case "Açık":
@@ -92,9 +88,7 @@ function getStatusDisplay(status: FindingStatus) {
       };
     case "Onay bekleyen":
       return {
-        icon: (
-          <Loader2 className="text-yellow-500 w-4 h-4 mr-1 animate-spin" />
-        ),
+        icon: <Loader2 className="text-yellow-500 w-4 h-4 mr-1 animate-spin" />,
         colorClass: "text-yellow-500",
       };
     case "Tamamlandı":
@@ -114,32 +108,24 @@ function getStatusDisplay(status: FindingStatus) {
 export default function BulgularPage() {
   const { findings } = useFindingStore();
 
-  // "Görev" vs "Denetim" tab
   const [tab, setTab] = useState<"gorev" | "denetim">("gorev");
-
-  // Filters: status, month-year, location
   const [statusFilter, setStatusFilter] = useState<"all" | FindingStatus>(
     "all"
   );
   const [monthYearFilter, setMonthYearFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
 
-  // Compute filtered findings
   const filteredFindings = useMemo(() => {
-    // 1) Tab-based type filter
     let data = findings.filter((f) =>
       tab === "gorev" ? f.type === "Görev" : f.type === "Denetim"
     );
 
-    // 2) Status
     if (statusFilter !== "all") {
       data = data.filter((f) => f.status === statusFilter);
     }
-    // 3) Month-year -> check f.createdAt
     if (monthYearFilter) {
       data = data.filter((f) => f.createdAt.startsWith(monthYearFilter));
     }
-    // 4) Location
     if (locationFilter !== "all") {
       data = data.filter((f) => f.location === locationFilter);
     }
@@ -160,7 +146,7 @@ export default function BulgularPage() {
           <TabsTrigger value="denetim">Denetim Bulguları</TabsTrigger>
         </TabsList>
 
-        {/* Filter Controls */}
+        {/* Filters */}
         <div className="mt-4 flex flex-wrap gap-4 items-end">
           {/* Status */}
           <div className="flex flex-col">
@@ -209,12 +195,9 @@ export default function BulgularPage() {
           </div>
         </div>
 
-        {/* Görev Bulguları */}
         <TabsContent value="gorev" className="mt-6">
           <FindingList items={filteredFindings} />
         </TabsContent>
-
-        {/* Denetim Bulguları */}
         <TabsContent value="denetim" className="mt-6">
           <FindingList items={filteredFindings} />
         </TabsContent>
@@ -224,7 +207,7 @@ export default function BulgularPage() {
 }
 
 // -----------------------------------------------------------------------------
-// 3) The FindingList
+// 3) FindingList
 // -----------------------------------------------------------------------------
 
 function FindingList({ items }: { items: any[] }) {
@@ -246,20 +229,26 @@ function FindingList({ items }: { items: any[] }) {
 }
 
 // -----------------------------------------------------------------------------
-// 4) The FindingCard
+// 4) FindingCard
 // -----------------------------------------------------------------------------
 
 function FindingCard({ finding }: { finding: any }) {
+  // Combine "before" photos + "after" photos into one array
+  // and color them differently. We'll create { url, type } objects:
+  const allImages = [
+    ...(finding.photos || []).map((url: string) => ({
+      url,
+      type: "before",
+    })),
+    ...(finding.afterPhotos || []).map((url: string) => ({
+      url,
+      type: "after",
+    })),
+  ];
+
   const [photoIndex, setPhotoIndex] = useState(0);
-
-  // "Before" images
-  const photos = finding.photos || [];
-  const totalPhotos = photos.length;
-  const currentPhoto = totalPhotos > 0 ? photos[photoIndex] : "";
-
-  // For date formatting
-  const createDate = isoToDateOnly(finding.createdAt);
-  const completedDate = isoToDateOnly(finding.completedAt);
+  const totalPhotos = allImages.length;
+  const currentPhotoObj = totalPhotos > 0 ? allImages[photoIndex] : null;
 
   const handlePrev = () => {
     setPhotoIndex((p) => (p === 0 ? totalPhotos - 1 : p - 1));
@@ -268,8 +257,12 @@ function FindingCard({ finding }: { finding: any }) {
     setPhotoIndex((p) => (p + 1) % totalPhotos);
   };
 
-  // For expanding image
+  // Expand image
   const [expandOpen, setExpandOpen] = useState(false);
+
+  // For date formatting
+  const createDate = isoToDateOnly(finding.createdAt);
+  const completedDate = isoToDateOnly(finding.completedAt);
 
   // Style for status
   const statusInfo = getStatusDisplay(finding.status);
@@ -286,14 +279,20 @@ function FindingCard({ finding }: { finding: any }) {
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <div className="space-y-3">
-          {/* Slideshow + Expand */}
-          {currentPhoto ? (
-            <div className="relative w-full max-h-[500px] overflow-hidden flex items-center justify-center bg-muted rounded-md border">
+          {/* Slideshow with color-coded border */}
+          {currentPhotoObj ? (
+            <div className="relative w-full max-h-[500px] overflow-hidden flex items-center justify-center">
+              {/* Decide border color based on "before" vs "after" */}
               <img
-                src={currentPhoto}
+                src={currentPhotoObj.url}
                 alt="Finding"
-                className="object-contain max-h-[500px]"
+                className={`object-contain max-h-[500px] border-4 rounded-md ${
+                  currentPhotoObj.type === "before"
+                    ? "border-red-500"
+                    : "border-green-500"
+                }`}
               />
+              {/* Arrows if multiple */}
               {totalPhotos > 1 && (
                 <>
                   <button
@@ -310,6 +309,7 @@ function FindingCard({ finding }: { finding: any }) {
                   </button>
                 </>
               )}
+              {/* Expand icon */}
               <button
                 onClick={() => setExpandOpen(true)}
                 className="absolute bottom-2 right-2 text-white bg-black/50 p-1 rounded"
@@ -334,10 +334,17 @@ function FindingCard({ finding }: { finding: any }) {
             </span>
           </div>
 
-          {/* Sorumlu (if any) */}
+          {/* Sorumlu Person */}
           {finding.responsiblePerson && (
             <p>
               <strong>Sorumlu:</strong> {finding.responsiblePerson}
+            </p>
+          )}
+
+          {/* Bulan Kişi */}
+          {finding.foundBy && (
+            <p>
+              <strong>Bulan Kişi:</strong> {finding.foundBy}
             </p>
           )}
 
@@ -368,7 +375,7 @@ function FindingCard({ finding }: { finding: any }) {
             <strong>Bulgu Açıklaması:</strong> {finding.comment}
           </p>
 
-          {/* If there are extra action reports, show them */}
+          {/* Additional action reports */}
           {finding.actionReports && finding.actionReports.length > 0 && (
             <div className="mt-2 space-y-1">
               <strong>Raporlar:</strong>
@@ -385,31 +392,35 @@ function FindingCard({ finding }: { finding: any }) {
       </CardContent>
 
       {/* Expand Image Dialog */}
-      <Dialog open={expandOpen} onOpenChange={setExpandOpen}>
-        <DialogContent className="max-w-5xl w-full h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Resim</DialogTitle>
-          </DialogHeader>
-          <div className="relative w-full h-[60vh] flex items-center justify-center bg-muted rounded-md">
-            {currentPhoto && (
+      {currentPhotoObj && (
+        <Dialog open={expandOpen} onOpenChange={setExpandOpen}>
+          <DialogContent className="w-full sm:max-w-5xl h-auto">
+            <DialogHeader>
+              <DialogTitle>Resim</DialogTitle>
+            </DialogHeader>
+            <div className="relative w-full flex items-center justify-center bg-muted rounded-md">
               <img
-                src={currentPhoto}
-                alt="Fullsize"
-                className="object-contain max-h-[60vh]"
+                src={currentPhotoObj.url}
+                alt="Expanded"
+                className={`object-contain max-h-[70vh] border-4 rounded-md m-4 ${
+                  currentPhotoObj.type === "before"
+                    ? "border-red-500"
+                    : "border-green-500"
+                }`}
               />
-            )}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setExpandOpen(false)}>Kapat</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setExpandOpen(false)}>Kapat</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }
 
 // -----------------------------------------------------------------------------
-// 5) SettingsMenu with locked "Tamamlandı" logic
+// 5) SettingsMenu
 // -----------------------------------------------------------------------------
 
 function SettingsMenu({ finding }: { finding: any }) {
@@ -419,8 +430,10 @@ function SettingsMenu({ finding }: { finding: any }) {
   const { toast } = useToast();
 
   const isCompleted = finding.status === "Tamamlandı";
+  const extensionButtonLabel = finding.completionDeadline
+    ? "Ek Süre Talebi"
+    : "Bitiş Tarihi Belirle";
 
-  // dialogs
   const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
   const [title, setTitle] = useState("Tamirat Görevi");
   const [dueDate, setDueDate] = useState("");
@@ -433,7 +446,6 @@ function SettingsMenu({ finding }: { finding: any }) {
   const [showResponsibleDialog, setShowResponsibleDialog] = useState(false);
   const [showExtensionDialog, setShowExtensionDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
-
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   return (
@@ -484,6 +496,7 @@ function SettingsMenu({ finding }: { finding: any }) {
                   <Users className="w-4 h-4" />
                   Sorumlu Ekle/Değiştir
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -494,8 +507,9 @@ function SettingsMenu({ finding }: { finding: any }) {
                   }}
                 >
                   <Clock className="w-4 h-4" />
-                  Ek Süre Talebi
+                  {extensionButtonLabel}
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -510,6 +524,7 @@ function SettingsMenu({ finding }: { finding: any }) {
                 </Button>
               </>
             )}
+
             {/* Bulgu Rapor always visible */}
             <Button
               variant="ghost"
@@ -543,13 +558,16 @@ function SettingsMenu({ finding }: { finding: any }) {
 
       {/* Delete Confirmation */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Bulgu Sil</DialogTitle>
           </DialogHeader>
           <p>Bu bulguyu silmek istediğinize emin misiniz?</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
               Vazgeç
             </Button>
             <Button
@@ -571,8 +589,11 @@ function SettingsMenu({ finding }: { finding: any }) {
       </Dialog>
 
       {/* Görev Oluştur */}
-      <Dialog open={showCreateTaskDialog} onOpenChange={setShowCreateTaskDialog}>
-        <DialogContent>
+      <Dialog
+        open={showCreateTaskDialog}
+        onOpenChange={setShowCreateTaskDialog}
+      >
+        <DialogContent className="w-full sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Bulgu için Görev Oluştur</DialogTitle>
           </DialogHeader>
@@ -626,21 +647,25 @@ function SettingsMenu({ finding }: { finding: any }) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateTaskDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateTaskDialog(false)}
+            >
               Vazgeç
             </Button>
             <Button
               onClick={() => {
                 const location = finding.location || "Lobi";
-                // Directly assign the user
-                useChecklistStore.getState().createGorevFromBulgu(
-                  finding.id,
-                  title,
-                  location,
-                  dueDate,
-                  dueTime,
-                  assignedUser
-                );
+                useChecklistStore
+                  .getState()
+                  .createGorevFromBulgu(
+                    finding.id,
+                    title,
+                    location,
+                    dueDate,
+                    dueTime,
+                    assignedUser
+                  );
 
                 // Optionally add items
                 const lines = itemsText
@@ -704,7 +729,7 @@ function SettingsMenu({ finding }: { finding: any }) {
 }
 
 // -----------------------------------------------------------------------------
-// 6) EditDialog, ActionDialog, etc.
+// 6) EditDialog, ActionDialog, etc. (unchanged except for responsiveness)
 // -----------------------------------------------------------------------------
 
 function EditDialog({
@@ -724,7 +749,7 @@ function EditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-full">
+      <DialogContent className="w-full sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Bulgu Düzenle</DialogTitle>
         </DialogHeader>
@@ -829,7 +854,7 @@ function ActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-full">
+      <DialogContent className="w-full sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Aksiyon Ekle</DialogTitle>
         </DialogHeader>
@@ -842,7 +867,12 @@ function ActionDialog({
             onChange={(e) => setActionNote(e.target.value)}
           />
           <label className="text-sm font-medium">After Fotoğrafları</label>
-          <input type="file" accept="image/*" multiple onChange={handleUpload} />
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleUpload}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -878,7 +908,7 @@ function ResponsibleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm w-full">
+      <DialogContent className="w-full sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Sorumlu Ekle/Değiştir</DialogTitle>
         </DialogHeader>
@@ -914,6 +944,10 @@ function ExtensionDialog({
   finding: any;
 }) {
   const { updateFinding } = useFindingStore.getState();
+  const dialogTitle = finding.completionDeadline
+    ? "Ek Süre Talebi"
+    : "Bitiş Tarihi Belirle";
+
   const [deadline, setDeadline] = useState("");
 
   if (!finding) return null;
@@ -928,9 +962,9 @@ function ExtensionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-full">
+      <DialogContent className="w-full sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Ek Süre Talebi</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <input
@@ -969,7 +1003,7 @@ function ReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full">
+      <DialogContent className="w-full sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Bulgu Raporu</DialogTitle>
         </DialogHeader>
@@ -978,7 +1012,6 @@ function ReportDialog({
             Bu bulgunun önceki ve sonraki fotoğrafları.
           </p>
 
-          {/* BEFORE images (red outline) */}
           <p className="font-semibold text-red-600">Before:</p>
           <div className="flex flex-wrap gap-4 mb-4">
             {beforePhotos.map((p: string, i: number) => (
@@ -991,7 +1024,6 @@ function ReportDialog({
             ))}
           </div>
 
-          {/* AFTER images (green outline) */}
           <p className="font-semibold text-green-600">After:</p>
           <div className="flex flex-wrap gap-4 mb-4">
             {afterPhotos.map((p: string, i: number) => (
@@ -1004,15 +1036,11 @@ function ReportDialog({
             ))}
           </div>
 
-          {/* Any optional textual "actionReports" */}
           {actionReports.length > 0 && (
             <div className="mt-4 space-y-2">
               <strong>Eklenen Raporlar:</strong>
               {actionReports.map((r: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="pl-4 text-sm text-muted-foreground"
-                >
+                <div key={idx} className="pl-4 text-sm text-muted-foreground">
                   <em>{isoToDateOnly(r.date)}</em> – {r.text}
                 </div>
               ))}

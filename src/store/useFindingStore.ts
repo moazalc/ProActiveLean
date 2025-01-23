@@ -24,7 +24,8 @@ export interface Finding {
   afterPhotos?: string[]; // "after" images (added via Aksiyon Ekle)
   fixTaskId?: string; // reference to a fix Görev ID, if any
   responsiblePerson?: string; // store the chosen responsible person
-  actionReports?: Array<{ date: string; text: string }>; // optional extra text reports
+  actionReports?: Array<{ date: string; text: string }>; // optional extra text
+  foundBy?: string; // the user who found/created the bulgu
 }
 
 /** Zustand store interface. */
@@ -68,7 +69,7 @@ export const useFindingStore = create<FindingState>()(
       },
     }),
     {
-      name: "finding-storage", // persist key
+      name: "finding-storage", // key for localStorage
     }
   )
 );

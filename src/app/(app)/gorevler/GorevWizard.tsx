@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useChecklistStore } from "@/store/useChecklistStore";
-import { useFindingStore } from "@/store/useFindingStore"; // <-- import
+import { useFindingStore } from "@/store/useFindingStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+/** Suppose the user is "Ayşe" or from a real auth. */
+const currentWorkerName = "Ayşe";
+
 interface GorevWizardProps {
   checklistId: string;
   onClose: () => void;
@@ -43,7 +46,7 @@ export default function GorevWizard({
   } = useChecklistStore();
 
   const { toast } = useToast();
-  const findingStore = useFindingStore.getState(); // or useFindingStore()
+  const findingStore = useFindingStore.getState(); // direct access or via getState()
 
   const checklist = checklists.find((cl) => cl.id === checklistId);
 
@@ -90,12 +93,12 @@ export default function GorevWizard({
 
   const currentItem = checklist.items[currentIndex];
 
-  // Reset time to 10 minutes whenever we change items
+  // Reset time to 10 minutes whenever we move to a new item
   useEffect(() => {
     setTimeLeft(600);
   }, [currentIndex]);
 
-  // Decrement timer, except if item is checked or the checklist is complete
+  // Decrement the timer every second, unless item is checked or checklist completed
   useEffect(() => {
     const timer = setInterval(() => {
       if (currentItem.checked || checklist.completed) return;
@@ -104,12 +107,12 @@ export default function GorevWizard({
     return () => clearInterval(timer);
   }, [currentItem.checked, checklist.completed]);
 
-  // Sync local comment to the item’s existing comment
+  // Sync localComment to the current item’s existing comment
   useEffect(() => {
     setLocalComment(currentItem.comment || "");
   }, [currentItem]);
 
-  // Format timer
+  // Format the timer (mm:ss) with negative sign if below zero
   const absTime = Math.abs(timeLeft);
   const minutes = Math.floor(absTime / 60);
   const seconds = absTime % 60;
@@ -119,22 +122,22 @@ export default function GorevWizard({
   ).padStart(2, "0")}`;
 
   /** Toggles the item’s checkbox status */
-  const handleToggle = () => {
+  function handleToggle() {
     toggleItem(checklistId, currentItem.id);
-  };
+  }
 
   /** Saves the localComment back to the store */
-  const handleSaveComment = () => {
+  function handleSaveComment() {
     addComment(checklistId, currentItem.id, localComment);
     toast({
       title: "Yorum Eklendi",
       description: "Yorum başarıyla kaydedildi.",
       duration: 3000,
     });
-  };
+  }
 
-  /** Handle photo upload -> base64 -> store in checklist item */
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /** Photo upload -> store in checklist item */
+  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     Array.from(e.target.files).forEach((file) => {
       const reader = new FileReader();
@@ -151,33 +154,33 @@ export default function GorevWizard({
       };
       reader.readAsDataURL(file);
     });
-  };
+  }
 
-  /** Remove a photo from this item */
-  const handleRemovePhoto = (index: number) => {
+  /** Remove a photo from item */
+  function handleRemovePhoto(index: number) {
     removePhoto(checklistId, currentItem.id, index);
     toast({
       title: "Fotoğraf Silindi",
       description: "Fotoğraf kaldırıldı.",
       duration: 3000,
     });
-  };
+  }
 
-  /** Next/Previous Item logic */
+  /** Next/Previous item */
   const isLastItem = currentIndex === checklist.items.length - 1;
-  const handleNext = () => {
-    if (currentIndex < checklist.items.length - 1) {
+  function handleNext() {
+    if (checklist && currentIndex < checklist.items.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     }
-  };
-  const handlePrevious = () => {
+  }
+  function handlePrevious() {
     if (currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
     }
-  };
+  }
 
-  /** Mark the entire checklist as finished */
-  const handleFinishChecklist = () => {
+  /** Mark entire checklist as finished */
+  function handleFinishChecklist() {
     finishChecklist(checklistId);
     toast({
       title: "Görev Tamamlandı",
@@ -185,14 +188,13 @@ export default function GorevWizard({
       duration: 3000,
     });
     onClose();
-  };
+  }
 
-  /** Creates a Bulgu from the current item’s photos/comment. */
-  const handleCreateBulgu = () => {
+  /** Creates a Bulgu from this item’s data. */
+  function handleCreateBulgu() {
     const photos = currentItem.photos || [];
     const comment = currentItem.comment || "";
 
-    // if user hasn't added any photo or comment, we can warn or proceed anyway
     if (!comment && photos.length === 0) {
       toast({
         title: "Bulgu Oluşturulamadı",
@@ -203,19 +205,20 @@ export default function GorevWizard({
     }
 
     findingStore.addFinding({
-      type: "Görev", // since we are in gorev wizard
+      type: "Görev",
       status: "Açık",
-      location: checklist.location,
+      location: checklist?.location || "",
       createdAt: new Date().toISOString(),
-      comment: comment,
-      photos: photos,
+      comment,
+      photos,
+      foundBy: currentWorkerName, // <-- set the "Bulan Kişi"
     });
 
     toast({
       title: "Bulgu Oluşturuldu",
       description: "Bu maddede tespit edilen sorun Bulgular sayfasına eklendi.",
     });
-  };
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm overflow-y-auto min-h-screen">
@@ -233,7 +236,7 @@ export default function GorevWizard({
         {/* Content */}
         <CardContent className="flex-grow p-4 sm:p-6">
           <div className="space-y-6">
-            {/* Timer display */}
+            {/* Timer display if item not checked */}
             {!currentItem.checked && !checklist.completed && (
               <div className="flex items-center justify-between bg-muted p-3 rounded-md">
                 <span className="text-sm font-medium">Kalan Süre:</span>
@@ -241,7 +244,7 @@ export default function GorevWizard({
               </div>
             )}
 
-            {/* The item row */}
+            {/* Item label + checkbox */}
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -263,7 +266,7 @@ export default function GorevWizard({
 
             <Separator />
 
-            {/* Comment Section */}
+            {/* Comment */}
             <div className="space-y-2">
               <Label htmlFor="comment">Yorum</Label>
               <div className="flex items-end gap-2">
@@ -322,7 +325,7 @@ export default function GorevWizard({
 
             <Separator />
 
-            {/* Button to create a Bulgu from this item’s data */}
+            {/* Button to create a Bulgu */}
             {!checklist.completed && (
               <Button variant="outline" onClick={handleCreateBulgu}>
                 Bulgu Oluştur
@@ -331,7 +334,7 @@ export default function GorevWizard({
           </div>
         </CardContent>
 
-        {/* Footer */}
+        {/* Footer: Prev/Next/Finish */}
         <CardFooter className="justify-between items-center sticky bottom-0 bg-card z-10 p-4">
           <Button onClick={handlePrevious} disabled={currentIndex === 0}>
             <ChevronLeft className="mr-2 h-4 w-4" />
@@ -358,9 +361,9 @@ export default function GorevWizard({
         </CardFooter>
       </Card>
 
-      {/* Confirmation to Finish */}
+      {/* Finish Confirm */}
       <Dialog open={showFinishConfirm} onOpenChange={setShowFinishConfirm}>
-        <DialogContent>
+        <DialogContent className="w-full sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Görevi Bitir</DialogTitle>
           </DialogHeader>

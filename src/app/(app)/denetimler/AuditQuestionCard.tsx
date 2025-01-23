@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuditStore } from "@/store/useAuditStore";
-import { useFindingStore } from "@/store/useFindingStore"; // <-- import
+import { useFindingStore } from "@/store/useFindingStore";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,9 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { X } from "lucide-react";
+
+/** Suppose the auditor's name is "Denetçi Ali" or from real user data. */
+const currentAuditorName = "Ali";
 
 interface AuditQuestionCardProps {
   auditId: string;
@@ -34,17 +37,17 @@ export default function AuditQuestionCard({
   } = useAuditStore();
 
   const { toast } = useToast();
-  const findingStore = useFindingStore.getState(); // or useFindingStore()
+  const findingStore = useFindingStore.getState();
 
   const audit = audits.find((a) => a.id === auditId);
 
-  // Current question index & timer
+  // Current question index
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  // 10 minutes timer
+  // 10 minute timer
   const [timeLeft, setTimeLeft] = useState(600);
 
-  // Reset timer on question change
+  // Reset timer each question
   useEffect(() => {
     setTimeLeft(600);
   }, [currentQuestionIndex]);
@@ -58,7 +61,6 @@ export default function AuditQuestionCard({
     return () => clearInterval(timer);
   }, [audit?.completed]);
 
-  // Format timer
   const absTime = Math.abs(timeLeft);
   const minutes = Math.floor(absTime / 60);
   const seconds = absTime % 60;
@@ -72,21 +74,18 @@ export default function AuditQuestionCard({
   const currentQuestion = audit.questions[currentQuestionIndex];
   const isAuditCompleted = audit.completed;
 
-  // Mark main question answer
   const handleMarkAnswer = (answer: "YES" | "NO" | "NA") => {
     if (!isAuditCompleted) {
       markAnswer(auditId, currentQuestion.id, answer);
     }
   };
 
-  // Mark sub-question answer
   const handleSubQCheck = (subQId: string, answer: "YES" | "NO" | "NA") => {
     if (!isAuditCompleted) {
       markSubQuestionAnswer(auditId, currentQuestion.id, subQId, answer);
     }
   };
 
-  // Save comment
   const handleSaveComment = () => {
     if (!isAuditCompleted) {
       addCommentToQuestion(
@@ -107,7 +106,6 @@ export default function AuditQuestionCard({
     if (isAuditCompleted) return;
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -125,7 +123,6 @@ export default function AuditQuestionCard({
     });
   };
 
-  // Remove photo
   const handleRemovePhoto = (photoIndex: number) => {
     if (!isAuditCompleted) {
       removePhotoFromQuestion(auditId, currentQuestion.id, photoIndex);
@@ -137,9 +134,9 @@ export default function AuditQuestionCard({
     }
   };
 
-  // Next/previous question logic
   const isLastQuestion = currentQuestionIndex === audit.questions.length - 1;
-  const handleFinishAudit = () => {
+
+  function handleFinishAudit() {
     finishAudit(auditId);
     toast({
       title: "Denetim Tamamlandı",
@@ -147,7 +144,7 @@ export default function AuditQuestionCard({
       duration: 3000,
     });
     onClose();
-  };
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-white overflow-auto">
@@ -171,7 +168,6 @@ export default function AuditQuestionCard({
               </div>
             )}
 
-            {/* Info */}
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold">Kategori:</span>{" "}
               {currentQuestion.category}
@@ -179,7 +175,7 @@ export default function AuditQuestionCard({
               {currentQuestion.itemLabel}
             </div>
 
-            {/* Main Q yes/no/na */}
+            {/* Main question */}
             <div className="space-y-2">
               <Label className="text-sm">{currentQuestion.text}</Label>
               <div className="flex space-x-2">
@@ -306,7 +302,6 @@ export default function AuditQuestionCard({
               ) : null}
             </div>
 
-            {/* Button to create a Bulgu for the Auditor's found issue */}
             {!isAuditCompleted && (
               <Button variant="outline" onClick={() => handleCreateBulgu()}>
                 Bulgu Oluştur
@@ -353,7 +348,7 @@ export default function AuditQuestionCard({
     </div>
   );
 
-  /** Auditors use "Denetim" type for new findings. */
+  /** Auditors use "Denetim" type for new findings, with foundBy = currentAuditorName. */
   function handleCreateBulgu() {
     const photos = currentQuestion.photos || [];
     const comment = currentQuestion.comment || "";
@@ -370,10 +365,11 @@ export default function AuditQuestionCard({
     findingStore.addFinding({
       type: "Denetim",
       status: "Açık",
-      location: audit?.location || "", // from the audit
+      location: audit?.location || "",
       createdAt: new Date().toISOString(),
       comment,
       photos,
+      foundBy: currentAuditorName, // <--- set the "Bulan Kişi" for audits
     });
 
     toast({
